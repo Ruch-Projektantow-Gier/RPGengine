@@ -1,4 +1,4 @@
-#include <rpg/Runtime.hpp>
+#include <rpg/runGame.hpp>
 #include <rpg/ren/wgp/Backend.hpp>
 #include <rpg/ren/mesh.hpp>
 #include <rpg/ren/texture.hpp>
@@ -8,7 +8,7 @@
 #endif
 
 namespace rpg {
-    void run() {
+    void runGame() {
         static rpg::ren::wgp::Backend backend(1280, 720);
         backend.window.setFramebufferSizeCallback<[](
             glfw::Window&, int width, int height

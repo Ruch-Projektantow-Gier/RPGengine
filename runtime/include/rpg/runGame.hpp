@@ -1,5 +1,5 @@
 #pragma once
 
 namespace rpg {
-    void run();
+    void runGame();
 }

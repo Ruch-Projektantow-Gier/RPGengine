@@ -1,5 +1,5 @@
 add_library(Runtime
-    ./src/Runtime.cpp
+    ./src/runGame.cpp
     ./src/ren/wgp/Backend.cpp
 )
 add_library(RPGEngine::Runtime ALIAS Runtime)

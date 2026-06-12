@@ -1,5 +1,7 @@
 # RPGengine
 
+RPGengine is a game engine developed by Poznan University of Technology students.
+
 ## CMake Options
 
 `BUILD_EXAMPLES` - builds examples - `OFF` by default.

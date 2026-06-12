@@ -1,13 +1,15 @@
-#include "TextRenderer.hpp"
-#include "webgpu/webgpu_cpp.h"
+#include <rpg/ren/wgp/TextRenderer.hpp>
+
 #include <string>
 #include <array>
-//#define block_embeds
+
+#include <webgpu/webgpu_cpp.h>
+#define block_embeds
 #ifndef block_embeds
 #include <src/r/font/roboto.hpp>
 #endif
 
-namespace src::r::webgpu {
+namespace rpg::ren::wgp {
 	inline const auto fontTextureData = Texture::textureGradient(256, 256);
     TextRenderer::TextRenderer(
         const wgpu::Device& device,

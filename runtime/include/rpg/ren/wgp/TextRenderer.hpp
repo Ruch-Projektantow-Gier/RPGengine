@@ -1,12 +1,11 @@
 #pragma once
 #include <string>
 #include <glm/glm.hpp>
-#include "StackBuffer.hpp"
-#include "webgpu/webgpu_cpp.h"
-#include <src/r/webgpu/StackBuffer.hpp>
-#include "../texture.hpp"
+#include <webgpu/webgpu_cpp.h>
+#include <rpg/ren/wgp/StackBuffer.hpp>
+#include <rpg/ren/texture.hpp>
 
-namespace src::r::webgpu {
+namespace rpg::ren::wgp {
     struct TextRenderer {
         inline static constexpr size_t characterLimit = 100;
         struct CharData {
