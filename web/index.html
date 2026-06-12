@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>RPGEngine game</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #303030;
+    }
+
+    #loading {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: sans-serif;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">Loading...</div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    // Emscripten module configuration
+    var Module = {
+      canvas: document.getElementById("canvas"),
+
+      onRuntimeInitialized: function () {
+        document.getElementById("loading").style.display = "none";
+      }
+    };
+  </script>
+
+  {{{ SCRIPT }}}
+</body>
+</html>
