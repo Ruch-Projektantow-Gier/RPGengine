@@ -1,5 +1,5 @@
 add_executable(WebgpuExample main.cpp)
-target_link_libraries(WebgpuExample PRIVATE RPGEngine::Runtime)
+target_link_libraries(WebgpuExample PRIVATE RPGengine::Runtime)
 
 if(EMSCRIPTEN)
     set_target_properties(WebgpuExample PROPERTIES SUFFIX ".html")

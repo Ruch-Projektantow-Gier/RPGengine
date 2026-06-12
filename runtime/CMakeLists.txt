@@ -2,7 +2,7 @@ add_library(Runtime
     ./src/runGame.cpp
     ./src/ren/wgp/Backend.cpp
 )
-add_library(RPGEngine::Runtime ALIAS Runtime)
+add_library(RPGengine::Runtime ALIAS Runtime)
 
 target_compile_features(
     Runtime PUBLIC cxx_std_20

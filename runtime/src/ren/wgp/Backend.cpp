@@ -7,6 +7,7 @@
 #include <dawn/webgpu_cpp_print.h>
 
 #include <rpg/ren/wgp/Backend.hpp>
+#include "BindGroup.hpp"
 
 namespace rpg::ren::wgp {
     glfw::Window& makeWindow(int width, int height) {
@@ -387,46 +388,37 @@ namespace rpg::ren::wgp {
 	}
 
     Backend::BindGroupLayouts::BindGroupLayouts(const wgpu::Device& device) :
-        world(makeBindGroupLayout(
-			device,
-			wgpu::BindGroupLayoutEntry {
-				.binding = 0,
-				.visibility = wgpu::ShaderStage::Vertex,
-				.buffer {
+		world(BindGroup::Layout::make(
+			device, "World Bind Group Layout",
+			BindGroup::Layout::BufferEntry {
+				BindGroup::Layout::BasicEntry {.visibility = wgpu::ShaderStage::Vertex },
+				wgpu::BufferBindingLayout {
 					.type = wgpu::BufferBindingType::Uniform,
+					.minBindingSize = sizeof(glm::mat4)
+				},
+			}
+		)),
+		object(BindGroup::Layout::make(
+			device, "Object Bind Group Layout",
+			BindGroup::Layout::BufferEntry {
+				{.visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment },
+				{
+					.type = wgpu::BufferBindingType::Uniform,
+					.hasDynamicOffset = true,
 					.minBindingSize = sizeof(glm::mat4),
-				},
-			},
-			"World Bind Group Layout"
-		)), object(makeBindGroupLayout(
-			device,
-			{
-				wgpu::BindGroupLayoutEntry {
-					.binding = 0,
-					.visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
-					.buffer {
-						.type = wgpu::BufferBindingType::Uniform,
-						.hasDynamicOffset = true,
-						.minBindingSize = sizeof(Uniform),
-					},
-				},
-				wgpu::BindGroupLayoutEntry {
-					.binding = 1,
-					.visibility = wgpu::ShaderStage::Fragment,
-					.texture {
-						.sampleType = wgpu::TextureSampleType::Float,
-						.viewDimension = wgpu::TextureViewDimension::e2D,
-					},
-				},
-				wgpu::BindGroupLayoutEntry {
-					.binding = 2,
-					.visibility = wgpu::ShaderStage::Fragment,
-					.sampler {
-						.type = wgpu::SamplerBindingType::Filtering,
-					},
 				}
 			},
-			"Object Bind Group Layout"
+			BindGroup::Layout::TextureEntry {
+				{ .visibility = wgpu::ShaderStage::Fragment },
+				{
+					.sampleType = wgpu::TextureSampleType::Float,
+					.viewDimension = wgpu::TextureViewDimension::e2D,
+				},
+			},
+			BindGroup::Layout::SamplerEntry {
+				{ .visibility = wgpu::ShaderStage::Fragment },
+				{ .type = wgpu::SamplerBindingType::Filtering },
+			}
 		)) {}
     
     Backend::Backend(uint32_t width, uint32_t height) :
