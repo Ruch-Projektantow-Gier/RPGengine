@@ -6,8 +6,9 @@
 #include <webgpu/webgpu_glfw.h>
 #include <dawn/webgpu_cpp_print.h>
 
-#include <rpg/ren/wgp/Backend.hpp>
-#include "BindGroup.hpp"
+#include <rpg/ren/mesh.hpp>
+#include "Backend.hpp"
+#include "constmeshbuffer.hpp"
 
 namespace rpg::ren::wgp {
     glfw::Window& makeWindow(int width, int height) {
@@ -198,229 +199,10 @@ namespace rpg::ren::wgp {
 		return device.CreateTexture(&desc);
 	};
 
-    wgpu::BindGroupLayout makeBindGroupLayout(
-        const wgpu::Device &device,
-        const wgpu::BindGroupLayoutEntry& entry,
-		std::string_view label = std::string_view()
-    ) {
-		wgpu::BindGroupLayoutDescriptor desc {
-			.label = label,
-            .entryCount = 1,
-            .entries = &entry
-        };
-		return device.CreateBindGroupLayout(&desc);
-    }
-    wgpu::BindGroupLayout makeBindGroupLayout(
-        const wgpu::Device &device,
-        const std::vector<wgpu::BindGroupLayoutEntry>& entries,
-		std::string_view label = std::string_view()
-    ) {
-		wgpu::BindGroupLayoutDescriptor desc {
-			.label = label,
-            .entryCount = entries.size(),
-            .entries = entries.data()
-        };
-		return device.CreateBindGroupLayout(&desc);
-    }
-
-	wgpu::BindGroup makeBindGroup(
-		const wgpu::Device& device,
-		const wgpu::BindGroupLayout& layout,
-		const wgpu::BindGroupEntry& entry,
-		std::string_view label = std::string_view()
-	){
-		wgpu::BindGroupDescriptor desc {
-			.label = label,
-			.layout = layout,
-			.entryCount = 1,
-			.entries = &entry
-		};
-		return device.CreateBindGroup(&desc);
-	};
-
-	wgpu::BindGroup makeBindGroup(
-		const wgpu::Device& device,
-		const wgpu::BindGroupLayout& layout,
-		const std::vector<wgpu::BindGroupEntry>& entries,
-		std::string_view label = std::string_view()
-	){
-		wgpu::BindGroupDescriptor desc {
-			.label = label,
-			.layout = layout,
-			.entryCount = entries.size(),
-			.entries = entries.data()
-		};
-		return device.CreateBindGroup(&desc);
-	};
-
-    wgpu::PipelineLayout makePipelineLayout(
-        const wgpu::Device& device,
-        const auto& bindGroupLayouts
-    ) {
-        wgpu::PipelineLayoutDescriptor desc {
-            .label = "Pipeline Layout Descriptor",
-            .bindGroupLayoutCount = bindGroupLayouts.size(),
-            .bindGroupLayouts = bindGroupLayouts.data(),
-        };
-	    return device.CreatePipelineLayout(&desc);
-    }
-
-	wgpu::ShaderModule makeShaderModule(const wgpu::Device& device){
-		wgpu::ShaderSourceWGSL wgsl { { .nextInChain = nullptr, .code = R"(
-			struct Uniforms {
-				M: mat4x4f,
-			};
-
-			struct WorldUniforms {
-				PV: mat4x4f,
-			};
-
-			@group(0) @binding(0) var<uniform> wu: WorldUniforms;
-			@group(1) @binding(0) var<uniform> u: Uniforms;
-			@group(1) @binding(1) var color: texture_2d<f32>;
-			@group(1) @binding(2) var texsampler: sampler;
-
-			struct Vertex {
-				@location(0) position: vec3f,
-				@location(1) normal: vec3f,
-				@location(2) texcoord: vec2f,
-			};
-
-			struct Varyings {
-				@builtin(position) position: vec4f,
-				@location(0) normal: vec3f,
-				@location(1) texcoord: vec2f,
-			};
-
-			@vertex fn vert(in: Vertex) -> Varyings {
-				var out: Varyings;
-				out.position = wu.PV * u.M * vec4f(in.position, 1.0);
-				out.normal = (u.M * vec4f(in.normal, 0.0)).xyz;
-				out.texcoord = in.texcoord;
-				return out;
-			}
-
-			@fragment fn frag(in: Varyings) -> @location(0) vec4f {
-			    let nl = max(dot(in.normal, normalize(vec3f(1, 1, 1))), 0.1);
-			   	let color: vec4f = textureSample(color, texsampler, in.texcoord);
-			  	return vec4f(color.rgb * nl, color.a);
-			}
-		)" } };
-		wgpu::ShaderModuleDescriptor shaderModuleDescriptor { .nextInChain = &wgsl };
-		return device.CreateShaderModule(&shaderModuleDescriptor);
-	};
-
-	wgpu::RenderPipeline makeRenderPipeline(
-        const wgpu::Device& device,
-        const wgpu::ShaderModule& shaderModule,
-        const wgpu::PipelineLayout& pipelineLayout,
-        wgpu::TextureFormat colorFormat
-    ) {
-		wgpu::BlendComponent blendComponent {
-			.operation = wgpu::BlendOperation::Add,
-			.srcFactor = wgpu::BlendFactor::SrcAlpha,
-			.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha,
-		};
-		wgpu::BlendState blendState {
-			.color = blendComponent,
-			.alpha = blendComponent,
-		};
-		wgpu::ColorTargetState colorTargetState {
-			.format = colorFormat,
-			.blend = &blendState,
-		};
-		wgpu::FragmentState fragmentState {
-			.module = shaderModule,
-			.targetCount = 1,
-			.targets = &colorTargetState
-		};
-		wgpu::DepthStencilState depthStencilState {
-			.format = depthFormat,
-			.depthWriteEnabled = true,
-			.depthCompare = wgpu::CompareFunction::Less,
-			.stencilReadMask = 0,
-			.stencilWriteMask = 0,
-		};
-		std::array<wgpu::VertexAttribute, 3> attributes {
-			wgpu::VertexAttribute {
-				.format = wgpu::VertexFormat::Float32x3,
-				.offset = 0,
-				.shaderLocation = 0,
-			},
-			wgpu::VertexAttribute {
-				.format = wgpu::VertexFormat::Float32x3,
-				.offset = 3 * sizeof(float),
-				.shaderLocation = 1,
-			},
-			wgpu::VertexAttribute {
-				.format = wgpu::VertexFormat::Float32x2,
-				.offset = 6 * sizeof(float),
-				.shaderLocation = 2,
-			},
-		};
-		wgpu::VertexBufferLayout vertexBufferLayout {
-			.stepMode = wgpu::VertexStepMode::Vertex,
-			.arrayStride = 8 * sizeof(float),
-			.attributeCount = attributes.size(),
-			.attributes = attributes.data(),
-		};
-		wgpu::RenderPipelineDescriptor descriptor {
-			.layout = pipelineLayout,
-			.vertex = {
-				.module = shaderModule,
-				.bufferCount = 1,
-				.buffers = &vertexBufferLayout,
-			},
-			.primitive = {
-				.topology = wgpu::PrimitiveTopology::TriangleList,
-				.frontFace = wgpu::FrontFace::CCW,
-				.cullMode = wgpu::CullMode::Back,
-			},
-			.depthStencil = &depthStencilState,
-			.multisample = { .count = sampleCount, },
-			.fragment = &fragmentState,
-		};
-		return device.CreateRenderPipeline(&descriptor);
-	}
-
 	wgpu::Buffer makeBuffer(const wgpu::Device& device, const wgpu::BufferDescriptor& desc) {
 		return device.CreateBuffer(&desc);
 	}
 
-    Backend::BindGroupLayouts::BindGroupLayouts(const wgpu::Device& device) :
-		world(BindGroup::Layout::make(
-			device, "World Bind Group Layout",
-			BindGroup::Layout::BufferEntry {
-				{ .visibility = wgpu::ShaderStage::Vertex },
-				{
-					.type = wgpu::BufferBindingType::Uniform,
-					.minBindingSize = sizeof(glm::mat4)
-				},
-			}
-		)),
-		object(BindGroup::Layout::make(
-			device, "Object Bind Group Layout",
-			BindGroup::Layout::BufferEntry {
-				{.visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment },
-				{
-					.type = wgpu::BufferBindingType::Uniform,
-					.hasDynamicOffset = true,
-					.minBindingSize = sizeof(glm::mat4),
-				}
-			},
-			BindGroup::Layout::TextureEntry {
-				{ .visibility = wgpu::ShaderStage::Fragment },
-				{
-					.sampleType = wgpu::TextureSampleType::Float,
-					.viewDimension = wgpu::TextureViewDimension::e2D,
-				},
-			},
-			BindGroup::Layout::SamplerEntry {
-				{ .visibility = wgpu::ShaderStage::Fragment },
-				{ .type = wgpu::SamplerBindingType::Filtering },
-			}
-		)) {}
-    
     Backend::Backend(uint32_t width, uint32_t height) :
         window(makeWindow(width, height)),
         instance(makeInstance()),
@@ -432,10 +214,7 @@ namespace rpg::ren::wgp {
         depthTexture(makeDepthTexture(device, width, height)),
         depthTextureView(makeDepthTextureView(depthTexture)),
         multipleTexture(makeMultisampleTexture(device, colorFormat, width, height)),
-        bindGroupLayouts(device),
-        pipelineLayout(makePipelineLayout(device, bindGroupLayouts)),
-        shaderModule(makeShaderModule(device)),
-        renderPipeline(makeRenderPipeline(device, shaderModule, pipelineLayout, colorFormat)),
+		litRenderer(device, colorFormat),
 		sampler([](const wgpu::Device& device) {
 			wgpu::SamplerDescriptor desc {
 				.addressModeU = wgpu::AddressMode::Repeat,
@@ -450,8 +229,9 @@ namespace rpg::ren::wgp {
 				.maxAnisotropy = 1,
 			};
 			return device.CreateSampler(&desc);
-		}(device)),
-		meshes(device, queue), uniforms(device)
+		}(device)), meshBuffer(constmeshbuffer::create(
+			device, queue, "Const Mesh Buffer"
+		)), uniforms(device)
 	{
         configureSurface(surface, device, colorFormat, width, height);
 
@@ -469,16 +249,8 @@ namespace rpg::ren::wgp {
 		size_t uniformBufferOffset,
 		std::string_view label
 	) const {
-		return makeBindGroup(
-			device,
-			bindGroupLayouts.world,
-			wgpu::BindGroupEntry {
-				.binding = 0,
-				.buffer = uniforms._buffer,
-				.offset = uniformBufferOffset,
-				.size = sizeof(glm::mat4),
-			},
-			label
+		return litRenderer.createWorldBindGroup(
+			uniforms._buffer, uniformBufferOffset, label
 		);
 	}
 	wgpu::BindGroup Backend::makeModelBindGroup(
@@ -486,26 +258,9 @@ namespace rpg::ren::wgp {
 		const wgpu::TextureView& textureView,
 		std::string_view label
 	) const {
-		return makeBindGroup(
-			device,
-			bindGroupLayouts.object,
-			{
-				wgpu::BindGroupEntry {
-					.binding = 0,
-					.buffer = uniforms._buffer,
-					.offset = uniformBufferOffset,
-					.size = sizeof(Uniform),
-				},
-				wgpu::BindGroupEntry {
-					.binding = 1,
-					.textureView = textureView,
-				},
-				wgpu::BindGroupEntry {
-					.binding = 2,
-					.sampler = sampler,
-				},
-			},
-			label
+		return litRenderer.createModelBindGroup(
+			uniforms._buffer, uniformBufferOffset,
+			textureView, sampler, label
 		);
 	}
 

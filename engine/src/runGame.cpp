@@ -1,11 +1,14 @@
 #include <rpg/runGame.hpp>
-#include <rpg/ren/wgp/Backend.hpp>
-#include <rpg/ren/mesh.hpp>
-#include <rpg/ren/texture.hpp>
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #endif
+
+#include <rpg/ren/mesh.hpp>
+#include <rpg/ren/texture.hpp>
+#include "ren/wgp/Backend.hpp"
+#include "ren/wgp/constmeshbuffer.hpp"
 
 namespace rpg {
     void runGame() {
@@ -16,10 +19,6 @@ namespace rpg {
             backend.onScreenResized(width, height);
         }>();
 
-        static const auto cubeMesh = backend.meshes.push(
-            ren::mesh::cube::vertexBuffer(),
-            ren::mesh::cube::indexBuffer<>
-        );
         static const auto texture = ren::Texture::make(backend.device,
             ren::Texture::singleColorData<ren::RGBA8{255, 255, 255, 255}, 16, 16>(),
             wgpu::TextureFormat::RGBA8Unorm,
@@ -58,10 +57,11 @@ namespace rpg {
             backend.draw([](
                 ren::wgp::Backend::RenderPass pass
             ){
-                pass.setVertexBuffer(cubeMesh.vertex);
+                using namespace ren::wgp;
+                pass.setVertexBuffer(constmeshbuffer::CubePointer);
                 pass.setWorldBindGroup(worldBindGroup);
                 pass.setBindGroup(bindGroup);
-                pass.drawIndexed(cubeMesh.index);
+                pass.drawIndexed(constmeshbuffer::CubePointer);
             });
         };
 #if defined(__EMSCRIPTEN__)

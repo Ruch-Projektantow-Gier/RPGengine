@@ -1,6 +1,7 @@
 add_library(Engine
-    ./src/runGame.cpp
-    ./src/ren/wgp/Backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runGame.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/LitRenderer.cpp
 )
 
 # Add namespaced alias to Engine target
@@ -13,7 +14,10 @@ target_set_warning_options(Engine)
 target_compile_features(Engine PUBLIC cxx_std_20)
 
 # Public headers
-target_include_directories(Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/)
+target_include_directories(Engine
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/
+)
 
 # GLFW HPP
 target_link_libraries(Engine PRIVATE glfw_hpp)

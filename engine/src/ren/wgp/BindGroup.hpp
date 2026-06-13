@@ -4,6 +4,9 @@
 namespace rpg::ren::wgp {
     namespace bindgroup {
         namespace layout {
+
+            // wgpu::BindGroupLayout creation helpers
+
             inline wgpu::BindGroupLayout create(
                 const wgpu::Device &device,
                 const wgpu::BindGroupLayoutDescriptor& descriptor
@@ -79,7 +82,6 @@ namespace rpg::ren::wgp {
             }
         };
         struct Layout {
-            using BasicEntry = layout::BasicEntry;
             using BufferEntry = layout::BufferEntry;
             using TextureEntry = layout::TextureEntry;
             using SamplerEntry = layout::SamplerEntry;
@@ -91,7 +93,55 @@ namespace rpg::ren::wgp {
                 return layout::make(device, label, std::forward<decltype(entries)>(entries)...);
             }
         };
-    };
+
+        // wgpu::BindGroup creation helpers
+
+        inline wgpu::BindGroup create(
+            const wgpu::Device& device,
+            const wgpu::BindGroupDescriptor& descriptor
+        ){
+            return device.CreateBindGroup(&descriptor);
+        }
+        inline wgpu::BindGroup create(
+            const wgpu::Device& device,
+            const wgpu::BindGroupLayout& layout,
+            const wgpu::BindGroupEntry& entry,
+            std::string_view label = std::string_view()
+        ){
+            return create(device, wgpu::BindGroupDescriptor{
+                .label = label,
+                .layout = layout,
+                .entryCount = 1,
+                .entries = &entry
+            });
+        };
+        inline wgpu::BindGroup create(
+            const wgpu::Device& device,
+            const wgpu::BindGroupLayout& layout,
+            std::span<wgpu::BindGroupEntry> entries,
+            std::string_view label = std::string_view()
+        ){
+            return create(device, wgpu::BindGroupDescriptor{
+                .label = label,
+                .layout = layout,
+                .entryCount = entries.size(),
+                .entries = entries.data()
+            });
+        };
+        inline wgpu::BindGroup create(
+            const wgpu::Device& device,
+            const wgpu::BindGroupLayout& layout,
+            std::initializer_list<wgpu::BindGroupEntry> entries,
+            std::string_view label = std::string_view()
+        ){
+            return create(device, wgpu::BindGroupDescriptor{
+                .label = label,
+                .layout = layout,
+                .entryCount = entries.size(),
+                .entries = entries.begin()
+            });
+        };
+    }
     struct BindGroup {
         using Layout = bindgroup::Layout;
     };
