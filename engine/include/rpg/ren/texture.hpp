@@ -71,7 +71,7 @@ namespace rpg::ren {
             device.GetQueue().WriteTexture(
                 &destination,
                 data,
-                bytesPerPixel * width * height,
+                static_cast<size_t>(bytesPerPixel) * width * height,
                 &source,
                 &desc.size
             );
@@ -98,8 +98,11 @@ namespace rpg::ren {
         ) {
             return make(
                 device,
-                data.width(), data.height(), data.data(),
-                format, label
+                static_cast<uint32_t>(data.width()),
+                static_cast<uint32_t>(data.height()),
+                data.data(),
+                format,
+                label
             );
         }
     };

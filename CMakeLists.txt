@@ -11,7 +11,11 @@ target_include_directories(glm INTERFACE third_party/glm)
 add_library(glfw_hpp INTERFACE)
 target_include_directories(glfw_hpp INTERFACE third_party/glfw.hpp/include)
 
-add_subdirectory(runtime)
+# CompilerWarnings helper function
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
+include(TargetSetWarningOptions)
+
+add_subdirectory(engine)
 
 # Examples
 option(BUILD_EXAMPLES "Build engine examples" OFF)

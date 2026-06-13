@@ -162,7 +162,7 @@ namespace rpg::ren::wgp {
                     &dynamicOffset
                 );
             }
-            void setVertexBuffer(StackBuffer::pointer pointer, size_t slot = 0) {
+            void setVertexBuffer(StackBuffer::pointer pointer, uint32_t slot = 0) {
                 pass.SetVertexBuffer(
                     slot,
                     pointer.buffer,
@@ -170,11 +170,11 @@ namespace rpg::ren::wgp {
                     pointer.size
                 );
             }
-            void drawIndexed(StackBuffer::pointer pointer, size_t instanceCount = 1) {
+            void drawIndexed(StackBuffer::pointer pointer, uint32_t instanceCount = 1) {
                 pass.DrawIndexed(
-                    pointer.size / sizeof(uint32_t),
+                    static_cast<uint32_t>(pointer.size / sizeof(uint32_t)),
                     instanceCount,
-                    pointer.offset / sizeof(uint32_t)
+                    static_cast<uint32_t>(pointer.offset / sizeof(uint32_t))
                 );
             }
         };

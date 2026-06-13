@@ -74,7 +74,7 @@ namespace rpg::ren::wgp {
                 .maxInterStageShaderVariables = 3,
             };
 
-            wgpu::DeviceDescriptor desc { { .requiredLimits = &requiredLimits } };
+            wgpu::DeviceDescriptor desc { { .nextInChain = nullptr, .requiredLimits = &requiredLimits } };
             desc.SetUncapturedErrorCallback(
                 [](
                     const wgpu::Device&,
@@ -266,7 +266,7 @@ namespace rpg::ren::wgp {
     }
 
 	wgpu::ShaderModule makeShaderModule(const wgpu::Device& device){
-		wgpu::ShaderSourceWGSL wgsl { { .code = R"(
+		wgpu::ShaderSourceWGSL wgsl { { .nextInChain = nullptr, .code = R"(
 			struct Uniforms {
 				M: mat4x4f,
 			};
@@ -391,8 +391,8 @@ namespace rpg::ren::wgp {
 		world(BindGroup::Layout::make(
 			device, "World Bind Group Layout",
 			BindGroup::Layout::BufferEntry {
-				BindGroup::Layout::BasicEntry {.visibility = wgpu::ShaderStage::Vertex },
-				wgpu::BufferBindingLayout {
+				{ .visibility = wgpu::ShaderStage::Vertex },
+				{
 					.type = wgpu::BufferBindingType::Uniform,
 					.minBindingSize = sizeof(glm::mat4)
 				},

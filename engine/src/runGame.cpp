@@ -48,7 +48,7 @@ namespace rpg {
         );
 
         static const auto render = []() {
-            float time = glfw::getTime();
+            float time = static_cast<float>(glfw::getTime());
             uniforms.write(glm::rotate(
                 glm::mat4(1.0f),
                 time,

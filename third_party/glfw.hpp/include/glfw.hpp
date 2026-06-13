@@ -62,7 +62,7 @@ namespace glfw {
 
     inline ErrorCode getError(const char** description) {
 #ifdef __EMSCRIPTEN__ // glfwGetError is undefined in emscripten
-        description = nullptr;
+        *description = nullptr;
         return ErrorCode::NoError;
 #else
         return static_cast<ErrorCode>(glfwGetError(description));
@@ -837,7 +837,7 @@ namespace glfw {
         const GammaRamp& getGammaRamp() {
             return GammaRamp::getRef(glfwGetGammaRamp(get()));
         }
-        void setGamma(double gamma) { glfwSetGamma(get(), gamma); }
+        void setGamma(float gamma) { glfwSetGamma(get(), gamma); }
     };
 
     inline GLFWmonitorfun setMonitorCallback(GLFWmonitorfun callback) {

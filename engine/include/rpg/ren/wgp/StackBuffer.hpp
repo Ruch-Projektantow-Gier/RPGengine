@@ -17,9 +17,9 @@ namespace rpg::ren::wgp {
                 queue.WriteBuffer(buffer, offset, data, size);
             }
 
-            inline void write(const wgpu::Queue& queue, const void* data, size_t offsetOffset, size_t size) {
-                assert(offsetOffset + size <= this->size);
-                queue.WriteBuffer(buffer, offset + offsetOffset, data, size);
+            inline void write(const wgpu::Queue& queue, const void* data, size_t offsetOffset, size_t overrideSize) {
+                assert(offsetOffset + overrideSize <= size);
+                queue.WriteBuffer(buffer, offset + offsetOffset, data, overrideSize);
             }
         };
 

@@ -18,7 +18,7 @@ namespace rpg::ren::wgp {
     struct StackUniformBuffer {
         wgpu::Buffer _buffer;
         size_t _offset;
-        uint32_t _stride;
+        size_t _stride;
 
         using VoidPointer = buffer::VoidPointer;
         template <typename T> using Pointer = buffer::Pointer<T>;
@@ -56,7 +56,7 @@ namespace rpg::ren::wgp {
     private:
         StackUniformBuffer(
             wgpu::Buffer&& buffer,
-            uint32_t stride
+            size_t stride
         ) : _buffer(buffer), _offset(0), _stride(stride) {}
 
         inline static constexpr size_t ceilToNextMultiple(size_t value, size_t alignment) {

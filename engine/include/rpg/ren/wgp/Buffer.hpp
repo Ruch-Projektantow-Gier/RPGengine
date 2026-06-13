@@ -206,6 +206,8 @@ namespace rpg::ren::wgp {
             const wgpu::Device& device,
             const wgpu::BufferDescriptor& desc
         ) : _buffer(device.CreateBuffer(&desc)), _size(desc.size) {}
+
+        inline size_t size() const { return _size; }
     };
 
     template <typename T>
