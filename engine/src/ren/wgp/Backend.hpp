@@ -77,7 +77,6 @@ namespace rpg::ren::wgp {
             std::string_view label = std::string_view()
         ) const;
         wgpu::BindGroup makeModelBindGroup(
-            size_t uniformBufferOffset,
             const wgpu::TextureView& textureView,
             std::string_view label = std::string_view()
         ) const;
@@ -112,15 +111,9 @@ namespace rpg::ren::wgp {
                 pass.SetBindGroup(0, bindGroup);
             }
             void setBindGroup(
-                const wgpu::BindGroup& bindGroup,
-                uint32_t dynamicOffset = 0
+                const wgpu::BindGroup& bindGroup
             ) {
-                pass.SetBindGroup(
-                    1,
-                    bindGroup,
-                    1,
-                    &dynamicOffset
-                );
+                pass.SetBindGroup(1, bindGroup);
             }
             void setVertexBuffer(constmeshbuffer::Pointer p, uint32_t slot = 0) {
                 pass.SetVertexBuffer(slot, buffer,
@@ -167,7 +160,8 @@ namespace rpg::ren::wgp {
             wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderpass);
             pass.SetPipeline(litRenderer.pipeline);
             pass.SetIndexBuffer(meshBuffer, wgpu::IndexFormat::Uint32);
-            fillRenderPass(RenderPass { .pass = pass, .buffer = meshBuffer });
+            pass.SetVertexBuffer(LitRenderer::InstanceBufferSlot, litRenderer.instanceBuffer);
+            fillRenderPass(LitRenderer::Pass { .pass = pass, .vertexBuffer = meshBuffer });
             pass.End();
             wgpu::CommandBuffer commands = encoder.Finish();
             queue.Submit(1, &commands);

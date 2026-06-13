@@ -20,14 +20,6 @@ namespace rpg::ren::wgp {
         }, "LitRenderer World Bind Group Layout"),
         .object = bindgroup::layout::create(device, {
             wgpu::BindGroupLayoutEntry {
-                .binding = 0,
-                .visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
-                .buffer {
-                    .type = wgpu::BufferBindingType::Uniform,
-                    .hasDynamicOffset = true,
-                    .minBindingSize = ObjectBindingSize,
-                }
-            }, wgpu::BindGroupLayoutEntry {
                 .binding = 1,
                 .visibility = wgpu::ShaderStage::Fragment,
                 .texture {
@@ -49,16 +41,11 @@ namespace rpg::ren::wgp {
 	    wgpu::PipelineLayout pipelineLayout = device.CreatePipelineLayout(&desc);
 
         wgpu::ShaderModule shaderModule = shadermodule::create(device, R"(
-			struct Uniforms {
-				M: mat4x4f,
-			};
-
 			struct WorldUniforms {
 				PV: mat4x4f,
 			};
 
 			@group(0) @binding(0) var<uniform> wu: WorldUniforms;
-			@group(1) @binding(0) var<uniform> u: Uniforms;
 			@group(1) @binding(1) var color: texture_2d<f32>;
 			@group(1) @binding(2) var texsampler: sampler;
 
@@ -66,6 +53,11 @@ namespace rpg::ren::wgp {
 				@location(0) position: vec3f,
 				@location(1) normal: vec3f,
 				@location(2) texcoord: vec2f,
+
+				@location(3) M0: vec4f,
+				@location(4) M1: vec4f,
+				@location(5) M2: vec4f,
+				@location(6) M3: vec4f,
 			};
 
 			struct Varyings {
@@ -76,8 +68,9 @@ namespace rpg::ren::wgp {
 
 			@vertex fn vert(in: Vertex) -> Varyings {
 				var out: Varyings;
-				out.position = wu.PV * u.M * vec4f(in.position, 1.0);
-				out.normal = (u.M * vec4f(in.normal, 0.0)).xyz;
+                let M = mat4x4f(in.M0, in.M1, in.M2, in.M3);
+				out.position = wu.PV * M * vec4f(in.position, 1.0);
+				out.normal = (M * vec4f(in.normal, 0.0)).xyz;
 				out.texcoord = in.texcoord;
 				return out;
 			}
@@ -114,7 +107,7 @@ namespace rpg::ren::wgp {
 			.stencilReadMask = 0,
 			.stencilWriteMask = 0,
 		};
-		wgpu::VertexAttribute attributes[3] {
+		wgpu::VertexAttribute vertexAttributes[3] {
 			wgpu::VertexAttribute {
 				.format = wgpu::VertexFormat::Float32x3,
 				.offset = 0,
@@ -131,18 +124,48 @@ namespace rpg::ren::wgp {
 				.shaderLocation = 2,
 			},
 		};
-		wgpu::VertexBufferLayout vertexBufferLayout {
-			.stepMode = wgpu::VertexStepMode::Vertex,
-			.arrayStride = 8 * sizeof(float),
-			.attributeCount = 3,
-			.attributes = attributes,
+		wgpu::VertexAttribute instanceAttributes[4] {
+			{
+				.format = wgpu::VertexFormat::Float32x4,
+				.offset = 0,
+				.shaderLocation = 3,
+			},
+			{
+				.format = wgpu::VertexFormat::Float32x4,
+				.offset = 4 * sizeof(float),
+				.shaderLocation = 4,
+			},
+			{
+				.format = wgpu::VertexFormat::Float32x4,
+				.offset = 8 * sizeof(float),
+				.shaderLocation = 5,
+			},
+			{
+				.format = wgpu::VertexFormat::Float32x4,
+				.offset = 12 * sizeof(float),
+				.shaderLocation = 6,
+			},
+		};
+		wgpu::VertexBufferLayout vertexBufferLayouts[2] {
+            {
+                .stepMode = wgpu::VertexStepMode::Vertex,
+                .arrayStride = 8 * sizeof(float),
+                .attributeCount = 3,
+                .attributes = vertexAttributes,
+            },
+            {
+                .stepMode = wgpu::VertexStepMode::Instance,
+                .arrayStride = 16 * sizeof(float),
+                .attributeCount = 4,
+                .attributes = instanceAttributes,
+            },
 		};
 		wgpu::RenderPipelineDescriptor descriptor {
 			.layout = pipelineLayout,
 			.vertex = {
 				.module = shaderModule,
-				.bufferCount = 1,
-				.buffers = &vertexBufferLayout,
+				.bufferCount = 2,
+				.buffers = vertexBufferLayouts,
 			},
 			.primitive = {
 				.topology = wgpu::PrimitiveTopology::TriangleList,
@@ -154,6 +177,14 @@ namespace rpg::ren::wgp {
 			.fragment = &fragmentState,
 		};
 		return device.CreateRenderPipeline(&descriptor);
+    }()), instanceBuffer([this](){
+        wgpu::BufferDescriptor desc {
+            .label = "LitRenderer Instance Buffer",
+            .usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst,
+            .size = MaxObjects * 16 * sizeof(float),
+            .mappedAtCreation = false
+        };
+        return device.CreateBuffer(&desc);
     }()) {}
 
     wgpu::BindGroup LitRenderer::createWorldBindGroup(
@@ -174,8 +205,6 @@ namespace rpg::ren::wgp {
 		);
     }
     wgpu::BindGroup LitRenderer::createModelBindGroup(
-        const wgpu::Buffer& uniformBuffer,
-        size_t uniformBufferOffset,
         const wgpu::TextureView textureView,
         const wgpu::Sampler sampler,
         std::string_view label
@@ -184,12 +213,6 @@ namespace rpg::ren::wgp {
 			device,
 			bindGroupLayouts.object,
 			{
-				wgpu::BindGroupEntry {
-					.binding = 0,
-					.buffer = uniformBuffer,
-					.offset = uniformBufferOffset,
-					.size = ObjectBindingSize,
-				},
 				wgpu::BindGroupEntry {
 					.binding = 1,
 					.textureView = textureView,

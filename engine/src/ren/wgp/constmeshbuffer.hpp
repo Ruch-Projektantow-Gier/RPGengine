@@ -49,7 +49,8 @@ namespace rpg::ren::wgp::constmeshbuffer {
             std::span<const mesh::Vertex> vertexData,
             std::span<const uint32_t> indexData
         ) {
-            queue.WriteBuffer(buffer, p.vertexOffset(),
+            queue.WriteBuffer(buffer,
+                p.vertexOffset(),
                 vertexData.data(),
                 p.vertexDataSize()
             );
@@ -67,7 +68,7 @@ namespace rpg::ren::wgp::constmeshbuffer {
         );
         write(
             CylinderPointer,
-            mesh::cylinder<24>::vertexBuffer(),
+            mesh::cylinder<24>::vertexBuffer(1.0f),
             mesh::cylinder<24>::indexBuffer<uint32_t>()
         );
 

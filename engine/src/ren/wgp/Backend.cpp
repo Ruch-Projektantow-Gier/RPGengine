@@ -254,12 +254,10 @@ namespace rpg::ren::wgp {
 		);
 	}
 	wgpu::BindGroup Backend::makeModelBindGroup(
-		size_t uniformBufferOffset,
 		const wgpu::TextureView& textureView,
 		std::string_view label
 	) const {
 		return litRenderer.createModelBindGroup(
-			uniforms._buffer, uniformBufferOffset,
 			textureView, sampler, label
 		);
 	}

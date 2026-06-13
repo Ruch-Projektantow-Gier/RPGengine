@@ -4,6 +4,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #endif
+#include <glm/gtx/quaternion.hpp>
 
 #include <rpg/ren/mesh.hpp>
 #include <rpg/ren/texture.hpp>
@@ -11,7 +12,7 @@
 #include "ren/wgp/constmeshbuffer.hpp"
 
 namespace rpg {
-    void runGame() {
+    void runGame(ren::Scene&& Scene, void(*onUpdate)(ren::Scene&, float)) {
         static rpg::ren::wgp::Backend backend(1280, 720);
         backend.window.setFramebufferSizeCallback<[](
             glfw::Window&, int width, int height
@@ -39,29 +40,48 @@ namespace rpg {
             "World Bind Group"
         );
 
-        static const auto uniforms = backend.createUniforms<glm::mat4>(glm::mat4(1.0f));
         static const wgpu::BindGroup bindGroup = backend.makeModelBindGroup(
-            uniforms.offset,
             texture.view,
             "Object Bind Group"
         );
 
+        static ren::Scene scene = std::forward<ren::Scene>(Scene);
+        static void(*upd)(ren::Scene&, float) = onUpdate;
+
+        static float oldTime = static_cast<float>(glfw::getTime());
         static const auto render = []() {
-            float time = static_cast<float>(glfw::getTime());
-            uniforms.write(glm::rotate(
-                glm::mat4(1.0f),
-                time,
-                glm::vec3(0.0f, 1.0f, 0.0f)
-            ));
+            float newTime = static_cast<float>(glfw::getTime());
+            float deltaTime = newTime - oldTime;
+            oldTime = newTime;
+
+            upd(scene, deltaTime);
+
+            std::vector<glm::mat4> M(scene.entries.size());
+            for (size_t i = 0; i < scene.entries.size(); ++i) {
+                auto& e = scene.entries[i];
+                M[i] = glm::translate(
+                    glm::mat4(1.0f),
+                    glm::vec3(e.position.x, e.position.y, e.position.z)
+                );
+                M[i] *= glm::toMat4(glm::quat(glm::vec3(e.rotation.x, e.rotation.y, e.rotation.z)));
+                M[i] = glm::scale(M[i], glm::vec3(e.scale.x, e.scale.y, e.scale.z));
+            }
+            backend.queue.WriteBuffer(
+                backend.litRenderer.instanceBuffer, 0,
+                M.data(), M.size() * sizeof(glm::mat4)
+            );
 
             backend.draw([](
-                ren::wgp::Backend::RenderPass pass
+                ren::wgp::LitRenderer::Pass pass
             ){
                 using namespace ren::wgp;
-                pass.setVertexBuffer(constmeshbuffer::CubePointer);
                 pass.setWorldBindGroup(worldBindGroup);
-                pass.setBindGroup(bindGroup);
-                pass.drawIndexed(constmeshbuffer::CubePointer);
+                pass.setObjectBindGroup(bindGroup);
+                pass.draw(
+                    constmeshbuffer::CubePointer,
+                    0,
+                    static_cast<uint32_t>(scene.entries.size())
+                );
             });
         };
 #if defined(__EMSCRIPTEN__)
