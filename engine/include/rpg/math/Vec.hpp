@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <cassert>
 
 namespace rpg::math {
     template <typename T, size_t Dim>
@@ -12,33 +14,47 @@ namespace rpg::math {
         constexpr Vec() = default;
         explicit constexpr Vec(T scalar) { std::fill_n(_, Dim, scalar); }
         explicit constexpr Vec(T (&other)[Dim]) : _(other) { }
+        constexpr Vec(std::initializer_list<T> values) {
+            assert(values.size() == Dim);
+            T* d = begin();
+            for (const T& v : values) *(d++) = v;
+        }
 
         constexpr T& operator[](size_t i) { return _[i]; }
         constexpr const T& operator[](size_t i) const { return _[i]; }
 
-        constexpr Vec& operator+=(const Vec& lhs) { for (size_t i = 0; i < Dim; ++i) _[i] += lhs[i]; }
-        constexpr Vec& operator-=(const Vec& lhs) { for (size_t i = 0; i < Dim; ++i) _[i] -= lhs[i]; }
-        constexpr Vec& operator*=(const Vec& lhs) { for (size_t i = 0; i < Dim; ++i) _[i] *= lhs[i]; }
-        constexpr Vec& operator/=(const Vec& lhs) { for (size_t i = 0; i < Dim; ++i) _[i] /= lhs[i]; }
+        constexpr Vec& operator+=(const Vec& rhs) { for (size_t i = 0; i < Dim; ++i) _[i] += rhs[i]; }
+        constexpr Vec& operator-=(const Vec& rhs) { for (size_t i = 0; i < Dim; ++i) _[i] -= rhs[i]; }
+        constexpr Vec& operator*=(const Vec& rhs) { for (size_t i = 0; i < Dim; ++i) _[i] *= rhs[i]; }
+        constexpr Vec& operator/=(const Vec& rhs) { for (size_t i = 0; i < Dim; ++i) _[i] /= rhs[i]; }
 
-        constexpr Vec& operator*=(T lhs) { for (size_t i = 0; i < Dim; ++i) _[i] *= lhs; }
-        constexpr Vec& operator/=(T lhs) { for (size_t i = 0; i < Dim; ++i) _[i] /= lhs; }
+        constexpr Vec& operator*=(T rhs) { for (size_t i = 0; i < Dim; ++i) _[i] *= rhs; }
+        constexpr Vec& operator/=(T rhs) { for (size_t i = 0; i < Dim; ++i) _[i] /= rhs; }
 
-        friend constexpr Vec operator+(Vec rhs, const Vec& lhs) { rhs += lhs; return rhs; }
-        friend constexpr Vec operator-(Vec rhs, const Vec& lhs) { rhs -= lhs; return rhs; }
-        friend constexpr Vec operator*(Vec rhs, const Vec& lhs) { rhs *= lhs; return rhs; }
-        friend constexpr Vec operator/(Vec rhs, const Vec& lhs) { rhs /= lhs; return rhs; }
+        friend constexpr Vec operator+(Vec lhs, const Vec& rhs) { lhs += rhs; return lhs; }
+        friend constexpr Vec operator-(Vec lhs, const Vec& rhs) { lhs -= rhs; return lhs; }
+        friend constexpr Vec operator*(Vec lhs, const Vec& rhs) { lhs *= rhs; return lhs; }
+        friend constexpr Vec operator/(Vec lhs, const Vec& rhs) { lhs /= rhs; return lhs; }
 
-        friend constexpr Vec operator*(Vec rhs, T lhs) { rhs *= lhs; return rhs; }
-        friend constexpr Vec operator*(T rhs, Vec lhs) { return lhs * rhs; }
-        friend constexpr Vec operator/(Vec rhs, T lhs) { rhs /= lhs; return rhs; }
+        friend constexpr Vec operator*(Vec lhs, T rhs) { lhs *= rhs; return lhs; }
+        friend constexpr Vec operator*(T lhs, Vec rhs) { return rhs * lhs; }
+        friend constexpr Vec operator/(Vec lhs, T rhs) { lhs /= rhs; return lhs; }
+
+        friend constexpr bool operator==(Vec lhs, const Vec& rhs) {
+            for (size_t i = 0; i < Dim; ++i) if (lhs[i] != rhs[i]) return false;
+            return true;
+        }
+        friend constexpr bool operator!=(Vec lhs, const Vec& rhs) { return !(lhs == rhs); }
 
         constexpr T* begin() { return _; }
         constexpr const T* begin() const { return _; }
         constexpr T* end() { return _ + Dim; }
         constexpr const T* end() const { return _ + Dim; }
 
-        constexpr T dot(Vec lhs) const {
+        constexpr T* data() { return _; }
+        constexpr const T* data() const { return _; }
+
+        constexpr T dot(const Vec& lhs) const {
             T res = static_cast<T>(0);
             for (size_t i = 0; i < Dim; ++i) res += _[i] * lhs[i];
             return res;
@@ -64,11 +80,22 @@ namespace rpg::math {
         constexpr T& operator[](size_t i) { return *(&x + i); }
         constexpr const T& operator[](size_t i) const { return *(&x + i); }
 
-        constexpr Vec3& operator+=(Vec3 lhs) {
-            x += lhs.x;
-            y += lhs.y;
-            z += lhs.z;
-        }
+        constexpr Vec3& operator+=(const Vec3& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; }
+        constexpr Vec3& operator-=(const Vec3& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; }
+        constexpr Vec3& operator*=(const Vec3& rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; }
+        constexpr Vec3& operator/=(const Vec3& rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z; }
+
+        constexpr Vec3& operator*=(T rhs) { x *= rhs; y *= rhs; z *= rhs; }
+        constexpr Vec3& operator/=(T rhs) { x /= rhs; y /= rhs; z /= rhs; }
+
+        friend constexpr Vec3 operator+(Vec3 lhs, const Vec3& rhs) { lhs += rhs; return lhs; }
+        friend constexpr Vec3 operator-(Vec3 lhs, const Vec3& rhs) { lhs -= rhs; return lhs; }
+        friend constexpr Vec3 operator*(Vec3 lhs, const Vec3& rhs) { lhs *= rhs; return lhs; }
+        friend constexpr Vec3 operator/(Vec3 lhs, const Vec3& rhs) { lhs /= rhs; return lhs; }
+
+        friend constexpr Vec3 operator*(Vec3 lhs, T rhs) { lhs *= rhs; return lhs; }
+        friend constexpr Vec3 operator*(T lhs, const Vec3& rhs) { return rhs * lhs; }
+        friend constexpr Vec3 operator/(Vec3 lhs, T rhs) { lhs /= rhs; return lhs; }
 
         constexpr size_t dim() const { return Dim; }
 
@@ -76,7 +103,16 @@ namespace rpg::math {
         constexpr const T* begin() const { return &x; }
         constexpr T* end() { return &x + Dim; }
         constexpr const T* end() const { return &x + Dim; }
+
+        constexpr T dot(const Vec3<T>& rhs) const {
+            return (x * rhs.x) + (y * rhs.y) * (z * rhs.z);
+        }
     };
+
+    template <typename T>
+    constexpr T dot(const Vec3<T>& rhs, const Vec3<T>& lhs) {
+        return (lhs.x * rhs.x) + (lhs.y * rhs.y) * (lhs.z * rhs.z);
+    }
 
     using Vec3f32 = Vec3<float>;
     using Vec3f64 = Vec3<double>;
