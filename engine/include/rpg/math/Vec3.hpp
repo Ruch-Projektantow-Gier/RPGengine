@@ -37,7 +37,7 @@ namespace rpg::math {
         friend constexpr Vec operator*(Vec lhs, T rhs) { lhs *= rhs; return lhs; }
         friend constexpr Vec operator*(T lhs, Vec rhs) { return rhs * lhs; }
         friend constexpr Vec operator/(Vec lhs, T rhs) { lhs /= rhs; return lhs; }
-        constexpr Vec operator-() { return Vec(-x, -y, -z); }
+        constexpr Vec operator-() const { return Vec(-x, -y, -z); }
 
         friend constexpr bool operator==(Vec lhs, const Vec& rhs) {
             return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
@@ -75,6 +75,9 @@ namespace rpg::math {
         }
         constexpr T length() const {
             return sqrt(dot(*this));
+        }
+        constexpr Vec normalized() const {
+            return *this / length();
         }
     };
 

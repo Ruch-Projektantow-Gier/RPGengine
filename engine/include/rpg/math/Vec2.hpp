@@ -50,6 +50,9 @@ namespace rpg::math {
         constexpr T length() const {
             return sqrt(dot(*this));
         }
+        constexpr Vec normalized() const {
+            return *this / length();
+        }
     };
 
     template <typename T>
