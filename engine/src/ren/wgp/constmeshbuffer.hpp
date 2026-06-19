@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu_cpp.h>
 #include <rpg/ren/mesh.hpp>
+#include <rpg/makeStatic.hpp>
 
 namespace rpg::ren::wgp::constmeshbuffer {
     struct Pointer {
@@ -21,8 +22,8 @@ namespace rpg::ren::wgp::constmeshbuffer {
 
     constexpr Pointer CubePointer = {
         .offset = 0,
-        .vertexCount = static_cast<uint32_t>(mesh::cube::vertexBuffer().size()),
-        .indexCount = static_cast<uint32_t>(mesh::cube::indexBuffer<uint32_t>.size())
+        .vertexCount = static_cast<uint32_t>(mesh::cube::vertexBufferSize),
+        .indexCount = static_cast<uint32_t>(mesh::cube::indexBufferSize)
     };
     constexpr Pointer CylinderPointer = {
         .offset = CubePointer.nextOffset(),
@@ -63,13 +64,13 @@ namespace rpg::ren::wgp::constmeshbuffer {
 
         write(
             CubePointer,
-            mesh::cube::vertexBuffer(),
+            makeStatic<mesh::cube::vertexBuffer()>,
             mesh::cube::indexBuffer<uint32_t>
         );
         write(
             CylinderPointer,
-            mesh::cylinder<24>::vertexBuffer(1.0f),
-            mesh::cylinder<24>::indexBuffer<uint32_t>()
+            makeStatic<mesh::cylinder<24>::vertexBuffer(1.0f)>,
+            mesh::cylinder<24>::indexBuffer<uint32_t>
         );
 
         return buffer;

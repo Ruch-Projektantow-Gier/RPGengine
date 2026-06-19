@@ -77,7 +77,7 @@ namespace rpg {
                 pass.setWorldBindGroup(worldBindGroup);
                 pass.setObjectBindGroup(bindGroup);
                 pass.draw(
-                    constmeshbuffer::CubePointer,
+                    constmeshbuffer::CylinderPointer,
                     0,
                     static_cast<uint32_t>(scene.entries.size())
                 );

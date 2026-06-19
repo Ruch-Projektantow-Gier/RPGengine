@@ -37,6 +37,12 @@ namespace rpg::math {
         constexpr Mat& operator+=(const Mat& rhs) { for (size_t i = 0; i < X; ++i) _[i] += rhs[i]; }
         constexpr Mat& operator-=(const Mat& rhs) { for (size_t i = 0; i < X; ++i) _[i] -= rhs[i]; }
 
+        friend constexpr Vec<T, X> operator*(Mat lhs, const Vec<T, Y>& rhs) {
+            Vec<T, X> res;
+            for (size_t i = 0; i < X; ++i) res[i] = dot(lhs[i], rhs);
+            return res;
+        }
+
         constexpr Vec<T, Y>* begin() { return _; }
         constexpr const Vec<T, Y>* begin() const { return _; }
         constexpr Vec<T, Y>* end() { return _ + X; }
@@ -49,7 +55,7 @@ namespace rpg::math {
     };
     namespace mat {
         template <typename T>
-        constexpr Mat<T, 4, 4> position(
+        constexpr Mat<T, 4, 4> translation(
             const T& x, const T& y, const T& z
         ) {
             return Mat<T, 4, 4> {
@@ -60,9 +66,14 @@ namespace rpg::math {
             };
         }
         template <typename T>
-        constexpr Mat<T, 4, 4> position(const Vec<T, 3>& p) {
-            return position(p.x, p.y, p.z);
+        constexpr Mat<T, 4, 4> translation(const Vec<T, 3>& p) {
+            return translation(p.x, p.y, p.z);
         }
-        static_assert(position(1.0f, 1.0f, 1.0f)[0][0] == 1.0f);
+        static_assert(translation(1.0f, 1.0f, 1.0f)[0][0] == 1.0f);
+        static_assert(
+            translation(1.0f, 1.0f, 1.0f) *
+            Vec4f({0.0f, 0.0f, 0.0f, 1.0f}) == 
+            Vec4f({1.0f, 1.0f, 1.0f, 1.0f})
+        );
     }
 }

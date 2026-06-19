@@ -1,13 +1,12 @@
 #pragma once
 #include <array>
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <rpg/math/Vec.hpp>
 
 namespace rpg::ren::mesh {
     struct Vertex {
-        glm::vec3 position;
-        glm::vec3 normal;
-        glm::vec2 texcoord;
+        math::Vec3f position;
+        math::Vec3f normal;
+        math::Vec2f texcoord;
     };
     template <size_t VertexCount, size_t IndexCount, typename IndexType = uint32_t>
     struct MeshData {
@@ -40,26 +39,27 @@ namespace rpg::ren::mesh {
         constexpr size_t vertexBufferSize = 4;
         constexpr size_t indexBufferSize = 6;
         constexpr std::array<Vertex, vertexBufferSize> vertexBuffer(
-            glm::vec2 dimensions = glm::vec2(1.0f),
-            glm::vec3 offset = glm::vec3(0.0f)
+            math::Vec2f dimensions = math::Vec2f(1.0f),
+            math::Vec3f offset = math::Vec3f(0.0f)
         ) {
-            glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            using namespace math;
+            Vec3f normal = Vec3f(0.0f, 1.0f, 0.0f);
             return {
                 Vertex {
-                    glm::vec3(dimensions.x, 0.0f, -dimensions.y) + offset,
-                    normal, glm::vec2(1.0f, 0.0f)
+                    Vec3f(dimensions.x, 0.0f, -dimensions.y) + offset,
+                    normal, Vec2f(1.0f, 0.0f)
                 },
                 Vertex {
-                    glm::vec3(dimensions.x, 0.0f, dimensions.y) + offset,
-                    normal, glm::vec2(1.0f, 1.0f)
+                    Vec3f(dimensions.x, 0.0f, dimensions.y) + offset,
+                    normal, Vec2f(1.0f, 1.0f)
                 },
                 Vertex {
-                    glm::vec3(-dimensions.x, 0.0f, dimensions.y) + offset,
-                    normal, glm::vec2(0.0f, 1.0f)
+                    Vec3f(-dimensions.x, 0.0f, dimensions.y) + offset,
+                    normal, Vec2f(0.0f, 1.0f)
                 },
                 Vertex {
-                    glm::vec3(-dimensions.x, 0.0f, -dimensions.y) + offset,
-                    normal, glm::vec2(0.0f, 0.0f)
+                    Vec3f(-dimensions.x, 0.0f, -dimensions.y) + offset,
+                    normal, Vec2f(0.0f, 0.0f)
                 },
             };
         }
@@ -67,33 +67,35 @@ namespace rpg::ren::mesh {
         inline constexpr std::array<T, indexBufferSize> indexBuffer { 0, 1, 2, 0, 2, 3 };
     }
     namespace cube {
-        inline constexpr std::array<Vertex, 24> vertexBuffer(
-            glm::vec3 size = glm::vec3(1.0f),
-            glm::vec3 offset = glm::vec3(0.0f)
+        inline constexpr std::size_t vertexBufferSize = 24;
+        inline constexpr std::array<Vertex, vertexBufferSize> vertexBuffer(
+            math::Vec3f size = math::Vec3f(1.0f),
+            math::Vec3f offset = math::Vec3f(0.0f)
         ) {
-            std::array<glm::vec2, 4> texcoords {
-                glm::vec2(0.0f, 0.0f),
-                glm::vec2(1.0f, 0.0f),
-                glm::vec2(1.0f, 1.0f),
-                glm::vec2(0.0f, 1.0f),
+            using namespace math;
+            std::array<math::Vec2f, 4> texcoords {
+                Vec2f(0.0f, 0.0f),
+                Vec2f(1.0f, 0.0f),
+                Vec2f(1.0f, 1.0f),
+                Vec2f(0.0f, 1.0f),
             };
-            std::array<glm::vec3, 6> normals {
-                glm::vec3(0.0f, 0.0f, -1.0f),
-                glm::vec3(0.0f, 0.0f, 1.0f),
-                glm::vec3(0.0f, -1.0f, 0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f),
-                glm::vec3(-1.0f, 0.0f, 0.0f),
-                glm::vec3(1.0f, 0.0f, 0.0f),
+            std::array<Vec3f, 6> normals {
+                Vec3f(0.0f, 0.0f, -1.0f),
+                Vec3f(0.0f, 0.0f, 1.0f),
+                Vec3f(0.0f, -1.0f, 0.0f),
+                Vec3f(0.0f, 1.0f, 0.0f),
+                Vec3f(-1.0f, 0.0f, 0.0f),
+                Vec3f(1.0f, 0.0f, 0.0f),
             };
-            std::array<glm::vec3, 8> positions {
-                glm::vec3(-size.x, -size.y, -size.z) + offset,
-                glm::vec3(-size.x, -size.y, size.z) + offset,
-                glm::vec3(-size.x, size.y, -size.z) + offset,
-                glm::vec3(-size.x,size.y, size.z) + offset,
-                glm::vec3(size.x, -size.y, -size.z) + offset,
-                glm::vec3(size.x, -size.y, size.z) + offset,
-                glm::vec3(size.x, size.y, -size.z) + offset,
-                glm::vec3(size.x, size.y, size.z) + offset,
+            std::array<Vec3f, 8> positions {
+                Vec3f(-size.x, -size.y, -size.z) + offset,
+                Vec3f(-size.x, -size.y, size.z) + offset,
+                Vec3f(-size.x, size.y, -size.z) + offset,
+                Vec3f(-size.x,size.y, size.z) + offset,
+                Vec3f(size.x, -size.y, -size.z) + offset,
+                Vec3f(size.x, -size.y, size.z) + offset,
+                Vec3f(size.x, size.y, -size.z) + offset,
+                Vec3f(size.x, size.y, size.z) + offset,
             };
             return {
                 Vertex { positions[4], normals[0], texcoords[0] },
@@ -127,8 +129,9 @@ namespace rpg::ren::mesh {
                 Vertex { positions[6], normals[5], texcoords[3] },
             };
         }
+        inline constexpr std::size_t indexBufferSize = 36;
         template <typename T = uint32_t>
-        inline static constexpr std::array<T, 36> indexBuffer {
+        inline static constexpr std::array<T, indexBufferSize> indexBuffer {
             0, 1, 2, 0, 2, 3,
             4, 5, 6, 4, 6, 7,
             8, 9, 10, 8, 10, 11,
@@ -137,70 +140,45 @@ namespace rpg::ren::mesh {
             20, 21, 22, 20, 22, 23,
         };
     }
-    namespace sphere {
-        template <size_t VerticalResolution, size_t HorizontalResolution>
-        inline constexpr auto vertexBuffer(float radius = 1.0f) {
-            std::array<Vertex, VerticalResolution * HorizontalResolution> res;
-            for (size_t i = 0; i < HorizontalResolution; ++i) {
-                float fraction = static_cast<float>(i) / HorizontalResolution;
-                glm::quat rot = glm::angleAxis(
-                    fraction * 2.0f * glm::pi<float>(),
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                );
-                for (size_t j = 0; j < VerticalResolution; ++j) {
-                    glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f) * rot;
-                    res[i * VerticalResolution + j] = {
-                        normal * radius, normal, glm::vec2(0.0f)
-                    };
-                    float fraction = static_cast<float>(j) / VerticalResolution;
-                    rot *= glm::angleAxis(
-                        fraction * glm::pi<float>(),
-                        glm::vec3(1.0f, 0.0f, 0.0f)
-                    );
-                }
-            }
-            return res;
-        }
-    }
     template <size_t Resolution>
     struct cylinder {
         constexpr static size_t vertexBufferSize = Resolution * 4 + 2;
         constexpr static std::array<Vertex, vertexBufferSize> vertexBuffer(
             float height = 0.0f,
             float radius = 1.0f,
-            glm::vec3 offset = glm::vec3(0.0f)
+            math::Vec3f offset = math::Vec3f(0.0f)
         ) {
+            using namespace math;
+            constexpr Handedness H = Handedness::Left;
             std::array<Vertex, vertexBufferSize> res {};
             size_t vert = 0;
             size_t topVert = Resolution * 2 + 2;
             size_t botVert = topVert + Resolution;
             for (size_t i = 0; i <= Resolution; ++i) {
+                Vec3f axis = Vec3f(0.0f, 1.0f, 0.0f);
                 float fraction = static_cast<float>(i) / Resolution;
-                glm::quat rot = glm::angleAxis(
-                    fraction * 2.0f * glm::pi<float>(),
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                );
+                float angle = fraction * 2.0f * pi<float>;
                 res[vert++] = {
-                    glm::vec3(0.0f, height, radius) * rot + offset,
-                    glm::vec3(0.0f, 0.0f, 1.0f) * rot,
-                    glm::vec2(fraction, 1.0f)
+                    rotate<H>(Vec3f(0.0f, height, radius), axis, angle) + offset,
+                    rotate<H>(Vec3f(0.0f, 0.0f, 1.0f), axis, angle),
+                    Vec2f(fraction, 1.0f)
                 };
                 res[vert++] = {
-                    glm::vec3(0.0f, -height, radius) * rot + offset,
-                    glm::vec3(0.0f, 0.0f, 1.0f) * rot,
-                    glm::vec2(fraction, 0.0f)
+                    rotate<H>(Vec3f(0.0f, -height, radius), axis, angle) + offset,
+                    rotate<H>(Vec3f(0.0f, 0.0f, 1.0f), axis, angle),
+                    Vec2f(fraction, 0.0f)
                 };
 
                 if (i < Resolution){
                     res[topVert++] = {
-                        glm::vec3(0.0f, height, radius) * rot + offset,
-                        glm::vec3(0.0f, 1.0f, 0.0f),
-                        glm::vec2(0.0f)
+                        rotate<H>(Vec3f(0.0f, height, radius), axis, angle) + offset,
+                        rotate<H>(Vec3f(0.0f, 1.0f, 0.0f), axis, angle),
+                        Vec2f(0.0f)
                     };
                     res[botVert++] = {
-                        glm::vec3(0.0f, height, radius) * rot + offset,
-                        glm::vec3(0.0f, -1.0f, 0.0f),
-                        glm::vec2(0.0f)
+                        rotate<H>(Vec3f(0.0f, height, radius), axis, angle) + offset,
+                        rotate<H>(Vec3f(0.0f, -1.0f, 0.0f), axis, angle),
+                        Vec2f(0.0f)
                     };
                 }
             }
@@ -208,7 +186,7 @@ namespace rpg::ren::mesh {
         }
         static constexpr size_t indexBufferSize = Resolution * 12;
         template <typename T = uint32_t>
-        constexpr static std::array<T, indexBufferSize> indexBuffer() {
+        constexpr static std::array<T, indexBufferSize> indexBuffer = []() {
             std::array<T, indexBufferSize> res {};
             T vert = 0;
             T topVertBegin = Resolution * 2 + 2;
@@ -238,6 +216,6 @@ namespace rpg::ren::mesh {
                 botVert += 1;
             }
             return res;
-        }
+        }();
     };
 }
