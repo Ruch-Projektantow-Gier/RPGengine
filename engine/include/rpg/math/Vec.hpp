@@ -53,6 +53,15 @@ namespace rpg::math {
         }
         friend constexpr bool operator!=(Vec lhs, const Vec& rhs) { return !(lhs == rhs); }
 
+        constexpr T& x() { static_assert(Dim >= 1); return _[0]; }
+        constexpr const T& x() const { static_assert(Dim >= 1); return _[0]; }
+
+        constexpr T& y() { static_assert(Dim >= 2); return _[1]; }
+        constexpr const T& y() const { static_assert(Dim >= 2); return _[1]; }
+
+        constexpr T& z() { static_assert(Dim >= 3); return _[2]; }
+        constexpr const T& z() const { static_assert(Dim >= 3); return _[2]; }
+
         constexpr T* begin() { return _; }
         constexpr const T* begin() const { return _; }
         constexpr T* end() { return _ + Dim; }

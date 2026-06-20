@@ -16,8 +16,20 @@ namespace rpg::math {
             assert(values.size() == 2);
         }
 
-        constexpr T& operator[](size_t i) { return *(&x + i); }
-        constexpr const T& operator[](size_t i) const { return *(&x + i); }
+        constexpr T& operator[](size_t i) {
+            switch(i) {
+                case 0: return x;
+                case 1: return y;
+                default: assert(false);
+            }
+        }
+        constexpr const T& operator[](size_t i) const {
+            switch(i) {
+                case 0: return x;
+                case 1: return y;
+                default: assert(false);
+            }
+        }
 
         constexpr Vec& operator+=(const Vec& rhs) { x += rhs.x; y += rhs.y; return *this; }
         constexpr Vec& operator-=(const Vec& rhs) { x -= rhs.x; y -= rhs.y; return *this; }
@@ -39,31 +51,19 @@ namespace rpg::math {
 
         constexpr size_t dim() const { return Dim; }
 
-        constexpr T* begin() { return &x; }
-        constexpr const T* begin() const { return &x; }
-        constexpr T* end() { return &x + Dim; }
-        constexpr const T* end() const { return &x + Dim; }
-
         constexpr T dot(const Vec& rhs) const {
             return (x * rhs.x) + (y * rhs.y);
         }
         constexpr T length() const {
             return sqrt(dot(*this));
         }
-        constexpr Vec normalized() const {
+        constexpr Vec& normalizeAssign() {
+            return *this /= length();
+        }
+        constexpr Vec normalize() const {
             return *this / length();
         }
     };
-
-    template <typename T>
-    constexpr Vec<T, 2> rotate(Vec<T, 2> v, T angle) {
-        T s = sin(angle);
-        T c = cos(angle);
-        return Vec<T, 2>(
-            (v.x * c) - (v.y * s),
-            (v.x * s) + (v.y * c)
-        );
-    }
 
     template<typename T> using Vec2 = Vec<T, 2>;
     using Vec2f32 = Vec2<float>;
@@ -75,4 +75,14 @@ namespace rpg::math {
     using Vec2d = Vec2f64;
     using Vec2i = Vec2i32;
     using Vec2u = Vec2u32;
+
+    template <typename T>
+    constexpr Vec2<T> rotate(Vec2<T> v, T angle) {
+        T s = sin(angle);
+        T c = cos(angle);
+        return Vec<T, 2>(
+            (v.x * c) - (v.y * s),
+            (v.x * s) + (v.y * c)
+        );
+    }
 }

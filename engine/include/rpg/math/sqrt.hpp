@@ -19,6 +19,6 @@ namespace rpg::math {
 
     template <typename T>
     inline constexpr T sqrt(T x) {
-        return alg::heron(x, static_cast<T>(0.0000152588));
+        return alg::heron(x, static_cast<T>(0.0));
     }
 }
