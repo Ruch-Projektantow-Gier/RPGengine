@@ -6,7 +6,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <rpg/ren/mesh.hpp>
-#include <rpg/ren/texture.hpp>
+#include "ren/wgp/texture.hpp"
 #include "ren/wgp/Backend.hpp"
 #include "ren/wgp/constmeshbuffer.hpp"
 
@@ -19,11 +19,19 @@ namespace rpg {
             backend.onScreenResized(width, height);
         }>();
 
-        static const auto texture = ren::Texture::make(backend.device,
-            ren::Texture::singleColorData<ren::RGBA8{255, 255, 255, 255}, 16, 16>(),
-            wgpu::TextureFormat::RGBA8Unorm,
-            "Color Texture"
+        static const std::array<ren::texture::Data<ren::RGBA8, 16, 16>, 2> textureData = {
+            ren::texture::Data<ren::RGBA8, 16, 16>({255, 255, 255, 255}),
+            ren::texture::Data<ren::RGBA8, 16, 16>({255, 0, 0, 255}),
+        };
+        static const auto texture = ren::Texture(
+            backend.device, 16, 16, 2, textureData.data(),
+            wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
         );
+        // static const auto texture = ren::Texture::make(backend.device,
+        //     ren::texture::Data<ren::RGBA8, 16, 16>({255, 255, 255, 255}),
+        //     wgpu::TextureFormat::RGBA8Unorm,
+        //     "Color Texture"
+        // );
 
         static const auto worldUniforms = backend.createUniforms<glm::mat4>(
             glm::perspective(

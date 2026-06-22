@@ -16,10 +16,13 @@ namespace rpg::math {
         constexpr Vec() = default;
         explicit constexpr Vec(T scalar) { std::fill_n(_, Dim, scalar); }
         explicit constexpr Vec(T (&other)[Dim]) : _(other) { }
-        constexpr Vec(std::initializer_list<T> values) {
+        template <typename Iter>
+        constexpr Vec(Iter Begin, Iter End) {
+            assert(std::distance(Begin, End) == Dim);
+            for (auto d = begin(); d != end(); ++d) *d = *(Begin++);
+        }
+        constexpr Vec(std::initializer_list<T> values) : Vec(values.begin(), values.end()) {
             assert(values.size() == Dim);
-            T* d = begin();
-            for (const T& v : values) *(d++) = v;
         }
 
         constexpr T& operator[](size_t i) { return _[i]; }
@@ -70,6 +73,8 @@ namespace rpg::math {
         constexpr T* data() { return _; }
         constexpr const T* data() const { return _; }
 
+        constexpr size_t dim() const { return Dim; }
+
         constexpr T dot(const Vec& lhs) const {
             T res = static_cast<T>(0);
             for (size_t i = 0; i < Dim; ++i) res += _[i] * lhs[i];
@@ -78,7 +83,10 @@ namespace rpg::math {
         constexpr T length() const {
             return sqrt(dot(*this));
         }
-        constexpr Vec normalized() const {
+        constexpr Vec normalizeAssign() const {
+            return *this /= length();
+        }
+        constexpr Vec normalize() const {
             return *this / length();
         }
     };

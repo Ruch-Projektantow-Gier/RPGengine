@@ -11,8 +11,11 @@ namespace rpg::math {
         constexpr Vec() = default;
         explicit constexpr Vec(T scalar) : x(scalar), y(scalar) {}
         constexpr Vec(T X, T Y) : x(X), y(Y) {}
-        constexpr Vec(std::initializer_list<T> values) :
-        x(*values.begin()), y(*(values.begin() + 1)) {
+        template <typename Iter>
+        constexpr Vec(Iter Begin, Iter End) : x(*Begin), y(*(Begin + 1)) {
+            assert(std::distance(Begin, End) == 2);
+        }
+        constexpr Vec(std::initializer_list<T> values) : Vec(values.begin(), values.end()) {
             assert(values.size() == 2);
         }
 

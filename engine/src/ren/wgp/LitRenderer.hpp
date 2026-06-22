@@ -12,6 +12,7 @@ namespace rpg::ren::wgp {
 
         static constexpr uint32_t WorldBindGroupIndex = 0;
         static constexpr uint32_t ObjectBindGroupIndex = 1;
+        static constexpr uint32_t BindGroups = 2;
 
         static constexpr size_t MaxObjects = 10;
 

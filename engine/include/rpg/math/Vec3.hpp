@@ -1,6 +1,6 @@
 #pragma once
 #include "Vec.hpp"
-#include "hendedness.hpp"
+#include "handedness.hpp"
 #include "trigonometric.hpp"
 
 namespace rpg::math {
@@ -13,9 +13,12 @@ namespace rpg::math {
         constexpr Vec() = default;
         explicit constexpr Vec(T scalar) : x(scalar), y(scalar), z(scalar) {}
         constexpr Vec(T X, T Y, T Z) : x(X), y(Y), z(Z) {}
-        constexpr Vec(std::initializer_list<T> values) :
-        x(*values.begin()), y(*(values.begin() + 1)), z(*(values.begin() + 2)) {
-            assert(values.size() == 3);
+        template <typename Iter>
+        constexpr Vec(Iter Begin, Iter End) : x(*Begin), y(*(Begin + 1)), z(*(Begin + 2)) {
+            assert(std::distance(Begin, End) == Dim);
+        }
+        constexpr Vec(std::initializer_list<T> values) : Vec(values.begin(), values.end()) {
+            assert(values.size() == Dim);
         }
 
         constexpr T& operator[](size_t i) {

@@ -24,7 +24,7 @@ namespace rpg::ren::wgp {
                 .visibility = wgpu::ShaderStage::Fragment,
                 .texture {
                     .sampleType = wgpu::TextureSampleType::Float,
-                    .viewDimension = wgpu::TextureViewDimension::e2D,
+                    .viewDimension = wgpu::TextureViewDimension::e2DArray,
                 }
             }, wgpu::BindGroupLayoutEntry {
                 .binding = 2,
@@ -46,7 +46,7 @@ namespace rpg::ren::wgp {
 			};
 
 			@group(0) @binding(0) var<uniform> wu: WorldUniforms;
-			@group(1) @binding(1) var color: texture_2d<f32>;
+			@group(1) @binding(1) var color: texture_2d_array<f32>;
 			@group(1) @binding(2) var texsampler: sampler;
 
 			struct Vertex {
@@ -77,7 +77,7 @@ namespace rpg::ren::wgp {
 
 			@fragment fn frag(in: Varyings) -> @location(0) vec4f {
 			    let nl = max(dot(in.normal, normalize(vec3f(1, 1, 1))), 0.1);
-			   	let color: vec4f = textureSample(color, texsampler, in.texcoord);
+			   	let color: vec4f = textureSample(color, texsampler, in.texcoord, 0);
 			  	return vec4f(color.rgb * nl, color.a);
 			}
 		)");
