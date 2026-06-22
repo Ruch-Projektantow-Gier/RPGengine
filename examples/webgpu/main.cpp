@@ -5,11 +5,13 @@ int main() {
 	using namespace rpg::math;
 	ren::Scene scene;
 	scene.entries.push_back(ren::Scene::Entry {
+		.materialId = 0,
 		.position = Vec3f(0.0f),
 		.rotation = Vec3f(0.0f),
 		.scale = Vec3f(1.0f)
 	});
 	scene.entries.push_back(ren::Scene::Entry {
+		.materialId = 1,
 		.position = Vec3f(0.0f, 0.0f, 4.0f),
 		.rotation = Vec3f(0.0f),
 		.scale = Vec3f(1.0f)

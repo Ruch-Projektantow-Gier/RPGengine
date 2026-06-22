@@ -58,12 +58,15 @@ namespace rpg::ren::wgp {
 				@location(4) M1: vec4f,
 				@location(5) M2: vec4f,
 				@location(6) M3: vec4f,
+
+				@location(7) tex1id: u32,
 			};
 
 			struct Varyings {
 				@builtin(position) position: vec4f,
 				@location(0) normal: vec3f,
 				@location(1) texcoord: vec2f,
+				@interpolate(flat) @location(2) tex1id: u32,
 			};
 
 			@vertex fn vert(in: Vertex) -> Varyings {
@@ -72,12 +75,13 @@ namespace rpg::ren::wgp {
 				out.position = wu.PV * M * vec4f(in.position, 1.0);
 				out.normal = (M * vec4f(in.normal, 0.0)).xyz;
 				out.texcoord = in.texcoord;
+				out.tex1id = in.tex1id;
 				return out;
 			}
 
 			@fragment fn frag(in: Varyings) -> @location(0) vec4f {
 			    let nl = max(dot(in.normal, normalize(vec3f(1, 1, 1))), 0.1);
-			   	let color: vec4f = textureSample(color, texsampler, in.texcoord, 0);
+			   	let color: vec4f = textureSample(color, texsampler, in.texcoord, in.tex1id);
 			  	return vec4f(color.rgb * nl, color.a);
 			}
 		)");
@@ -124,7 +128,7 @@ namespace rpg::ren::wgp {
 				.shaderLocation = 2,
 			},
 		};
-		wgpu::VertexAttribute instanceAttributes[4] {
+		wgpu::VertexAttribute instanceAttributes[5] {
 			{
 				.format = wgpu::VertexFormat::Float32x4,
 				.offset = 0,
@@ -145,6 +149,11 @@ namespace rpg::ren::wgp {
 				.offset = 12 * sizeof(float),
 				.shaderLocation = 6,
 			},
+			{
+				.format = wgpu::VertexFormat::Uint32,
+				.offset = 16 * sizeof(float),
+				.shaderLocation = 7,
+			},
 		};
 		wgpu::VertexBufferLayout vertexBufferLayouts[2] {
             {
@@ -155,8 +164,8 @@ namespace rpg::ren::wgp {
             },
             {
                 .stepMode = wgpu::VertexStepMode::Instance,
-                .arrayStride = 16 * sizeof(float),
-                .attributeCount = 4,
+                .arrayStride = InstanceSize,
+                .attributeCount = 5,
                 .attributes = instanceAttributes,
             },
 		};
@@ -181,7 +190,7 @@ namespace rpg::ren::wgp {
         wgpu::BufferDescriptor desc {
             .label = "LitRenderer Instance Buffer",
             .usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst,
-            .size = MaxObjects * 16 * sizeof(float),
+            .size = MaxObjects * InstanceSize,
             .mappedAtCreation = false
         };
         return device.CreateBuffer(&desc);

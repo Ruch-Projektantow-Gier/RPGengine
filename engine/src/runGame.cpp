@@ -6,6 +6,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <rpg/ren/mesh.hpp>
+#include <rpg/ren/texture.hpp>
 #include "ren/wgp/texture.hpp"
 #include "ren/wgp/Backend.hpp"
 #include "ren/wgp/constmeshbuffer.hpp"
@@ -19,19 +20,14 @@ namespace rpg {
             backend.onScreenResized(width, height);
         }>();
 
-        static const std::array<ren::texture::Data<ren::RGBA8, 16, 16>, 2> textureData = {
-            ren::texture::Data<ren::RGBA8, 16, 16>({255, 255, 255, 255}),
-            ren::texture::Data<ren::RGBA8, 16, 16>({255, 0, 0, 255}),
+        static const std::array<ren::texture::Data<ren::texture::RGBA8, 16, 16>, 2> textureData = {
+            ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 255, 255, 255}),
+            ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 0, 0, 255}),
         };
         static const auto texture = ren::Texture(
             backend.device, 16, 16, 2, textureData.data(),
             wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
         );
-        // static const auto texture = ren::Texture::make(backend.device,
-        //     ren::texture::Data<ren::RGBA8, 16, 16>({255, 255, 255, 255}),
-        //     wgpu::TextureFormat::RGBA8Unorm,
-        //     "Color Texture"
-        // );
 
         static const auto worldUniforms = backend.createUniforms<glm::mat4>(
             glm::perspective(
@@ -63,19 +59,24 @@ namespace rpg {
 
             upd(scene, deltaTime);
 
-            std::vector<glm::mat4> M(scene.entries.size());
+            struct InstanceData {
+                glm::mat4 M;
+                uint32_t textureId;
+            };
+            std::vector<InstanceData> M(scene.entries.size());
             for (size_t i = 0; i < scene.entries.size(); ++i) {
                 auto& e = scene.entries[i];
-                M[i] = glm::translate(
+                M[i].M = glm::translate(
                     glm::mat4(1.0f),
                     glm::vec3(e.position.x, e.position.y, e.position.z)
                 );
-                M[i] *= glm::toMat4(glm::quat(glm::vec3(e.rotation.x, e.rotation.y, e.rotation.z)));
-                M[i] = glm::scale(M[i], glm::vec3(e.scale.x, e.scale.y, e.scale.z));
+                M[i].M *= glm::toMat4(glm::quat(glm::vec3(e.rotation.x, e.rotation.y, e.rotation.z)));
+                M[i].M = glm::scale(M[i].M, glm::vec3(e.scale.x, e.scale.y, e.scale.z));
+                M[i].textureId = e.materialId;
             }
             backend.queue.WriteBuffer(
                 backend.litRenderer.instanceBuffer, 0,
-                M.data(), M.size() * sizeof(glm::mat4)
+                M.data(), M.size() * sizeof(InstanceData)
             );
 
             backend.draw([](

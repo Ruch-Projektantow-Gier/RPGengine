@@ -6,6 +6,7 @@
 namespace rpg::ren::wgp {
     struct LitRenderer {
         static constexpr size_t WorldBindingSize = 16 * sizeof(float);
+        static constexpr size_t InstanceSize = 16 * sizeof(float) + sizeof(uint32_t);
 
         static constexpr uint32_t VertexBufferSlot = 0;
         static constexpr uint32_t InstanceBufferSlot = 1;

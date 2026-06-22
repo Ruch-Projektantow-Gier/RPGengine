@@ -1,8 +1,8 @@
 #pragma once
 #include <webgpu/webgpu_cpp.h>
+#include <rpg/ren/texture.hpp>
 
 namespace rpg::ren {
-	struct RGBA8 { uint8_t r, g, b, a; };
     namespace texture {
         constexpr uint8_t bytesPerPixel(wgpu::TextureFormat format) {
             switch (format) {
@@ -63,19 +63,16 @@ namespace rpg::ren {
         template <wgpu::TextureFormat format>
         inline constexpr uint8_t BytesPerPixel = bytesPerPixel(format);
 
-        template <typename T, size_t Width, size_t Height>
-        struct Data {
-            std::array<T, Width * Height> _data;
+        template <typename T>
+        struct FormatTraits;
 
-            explicit constexpr Data(const T& color) : _data{} {
-                std::fill_n(_data.data(), Width * Height, color);
-            }
-
-            constexpr size_t width() const { return Width; }
-            constexpr size_t height() const { return Height; }
-            constexpr T* data() { return _data.data(); }
-            constexpr const T* data() const { return _data.data(); }
+        template <>
+        struct FormatTraits<RGBA8> {
+            inline static constexpr wgpu::TextureFormat WGPUFormat = wgpu::TextureFormat::RGBA8Unorm;
         };
+
+        template <typename T>
+        inline constexpr wgpu::TextureFormat formatOf = FormatTraits<T>::WGPUFormat;
     }
     struct Texture {
         wgpu::Texture texture;
