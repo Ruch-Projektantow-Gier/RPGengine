@@ -15,6 +15,10 @@ namespace rpg::ren::wgp {
     inline constexpr size_t vertexBufferSize = 1000;
     inline constexpr size_t maxBufferSize = 1000;
 
+    inline void setGlfwWindowHints() {
+        glfw::Window::hint(glfw::ClientApi::NoApi);
+    }
+
     glfw::Window& makeWindow(int width, int height);
     wgpu::Instance makeInstance();
     wgpu::Adapter makeAdapter(const wgpu::Instance& instance);
@@ -54,7 +58,6 @@ namespace rpg::ren::wgp {
     );
 
     struct Backend {
-        glfw::Window& window;
         wgpu::Instance instance;
         wgpu::Adapter adapter;
         wgpu::Device device;
@@ -69,11 +72,12 @@ namespace rpg::ren::wgp {
         wgpu::Buffer meshBuffer;
         StackUniformBuffer uniforms;
 
-        Backend(uint32_t width, uint32_t height);
+        Backend(glfw::Window& window, uint32_t width, uint32_t height);
+        Backend(glfw::Window& window);
         Backend(const Backend&) = delete;
         Backend& operator=(const Backend&) = delete;
-        Backend(Backend&&) = default;
-        ~Backend();
+        Backend(Backend&&) noexcept = default;
+        Backend& operator=(Backend&&) noexcept = default;
 
         wgpu::BindGroup makeWorldBindGroup(
             size_t uniformBufferOffset = 0,

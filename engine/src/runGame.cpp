@@ -18,6 +18,7 @@ namespace rpg {
             ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 0, 0, 255}),
         };
 
+        glfw::Window& window;
         ren::wgp::Backend backend;
         ren::Scene scene;
         ren::Texture texture;
@@ -30,7 +31,10 @@ namespace rpg {
         State(
             ren::Scene&& Scene,
             void (*OnUpdate)(ren::Scene& scene, float deltaTime)
-        ) : backend(1280, 720),
+        ) : window([]() -> glfw::Window& {
+                glfw::Window::hint(glfw::ClientApi::NoApi);
+                return glfw::createWindow(1280, 720);
+            }()), backend(window, 1280, 720),
             scene(std::forward<ren::Scene>(Scene)),
             texture(ren::Texture(
                 backend.device, 16, 16, 2, TextureData.data(),
@@ -49,11 +53,11 @@ namespace rpg {
                 texture.view, "Object Bind Group"
             )), onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
         {
-            backend.window.setUserPointer(&backend);
-            backend.window.setFramebufferSizeCallback<[](
+            window.setUserPointer(this);
+            window.setFramebufferSizeCallback<[](
                 glfw::Window& window, int width, int height
             ){
-                window.getUserPointer<ren::wgp::Backend>()->onScreenResized(width, height);
+                window.getUserPointer<State>()->backend.onScreenResized(width, height);
             }>();
         }
 
@@ -104,7 +108,7 @@ namespace rpg {
 #if defined(__EMSCRIPTEN__)
         emscripten::set_main_loop([s = std::move(state)]() mutable{ s.update(); }, 0, false);
 #else
-        while (!state.backend.window.shouldClose()) {
+        while (!state.window.shouldClose()) {
             glfw::pollEvents();
             state.update();
             state.backend.surface.Present();

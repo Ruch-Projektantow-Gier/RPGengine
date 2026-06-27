@@ -11,11 +11,6 @@
 #include "constmeshbuffer.hpp"
 
 namespace rpg::ren::wgp {
-    glfw::Window& makeWindow(int width, int height) {
-        glfw::Window::hint(glfw::ClientApi::NoApi);
-        return glfw::createWindow(width, height, "WebGPU window");
-    }
-
     wgpu::Instance makeInstance() {
         auto feature = wgpu::InstanceFeatureName::TimedWaitAny;
         wgpu::InstanceDescriptor instanceDesc{
@@ -150,7 +145,7 @@ namespace rpg::ren::wgp {
 	wgpu::Texture makeDepthTexture(
         const wgpu::Device& device,
         uint32_t width, uint32_t height
-    ){
+    ) {
 		wgpu::TextureDescriptor desc {
 			.label = "Depth Texture",
 			.usage = wgpu::TextureUsage::RenderAttachment,
@@ -203,8 +198,7 @@ namespace rpg::ren::wgp {
 		return device.CreateBuffer(&desc);
 	}
 
-    Backend::Backend(uint32_t width, uint32_t height) :
-        window(makeWindow(width, height)),
+    Backend::Backend(glfw::Window& window, uint32_t width, uint32_t height) :
         instance(makeInstance()),
         adapter(makeAdapter(instance)),
         device(makeDevice(instance, adapter)),
@@ -233,6 +227,10 @@ namespace rpg::ren::wgp {
 			device, queue, "Const Mesh Buffer"
 		)), uniforms(device)
 	{
+		auto size = window.getFramebufferSize();
+		assert(static_cast<uint32_t>(size.width) == width);
+		assert(static_cast<uint32_t>(size.height) == height);
+
         configureSurface(surface, device, colorFormat, width, height);
 
 		wgpu::AdapterInfo props;
@@ -240,10 +238,12 @@ namespace rpg::ren::wgp {
 			std::cout << "Running on: " << props.backendType << '\n';
 		}
     }
-    Backend::~Backend() {
-        // depthTexture.Destroy();
-        // multipleTexture.Destroy();
-    }
+
+	Backend::Backend(glfw::Window& window) : Backend(
+		window,
+		window.getFramebufferSize().width,
+		window.getFramebufferSize().height
+	) {}
 
 	wgpu::BindGroup Backend::makeWorldBindGroup(
 		size_t uniformBufferOffset,
