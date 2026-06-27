@@ -33,7 +33,7 @@ target_compile_definitions(
 
 # Dawn WebGPU
 if(EMSCRIPTEN)
-    target_link_libraries(Engine PRIVATE emdawnwebgpu_cpp webgpu_glfw)
+    target_link_libraries(Engine PRIVATE emdawnwebgpu_cpp webgpu_glfw emscripten)
     target_link_options(Engine PUBLIC "-sASYNCIFY=1" "-sUSE_GLFW=3")
 else()
     target_link_libraries(Engine PRIVATE webgpu_dawn webgpu_glfw glfw)

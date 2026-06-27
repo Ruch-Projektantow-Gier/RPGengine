@@ -11,6 +11,11 @@ target_include_directories(glm INTERFACE third_party/glm)
 add_library(glfw_hpp INTERFACE)
 target_include_directories(glfw_hpp INTERFACE third_party/glfw.hpp/include)
 
+if(EMSCRIPTEN)
+    add_library(emscripten INTERFACE)
+    target_include_directories(emscripten INTERFACE emscripten/include)
+endif()
+
 # CompilerWarnings helper function
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/)
 include(TargetSetWarningOptions)

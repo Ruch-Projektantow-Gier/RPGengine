@@ -1,7 +1,7 @@
 #include <rpg/runGame.hpp>
 
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
+#include <emscripten/emscripten.hpp>
 #endif
 #include <glm/gtx/quaternion.hpp>
 
@@ -12,52 +12,57 @@
 #include "ren/wgp/constmeshbuffer.hpp"
 
 namespace rpg {
-    void runGame(ren::Scene&& Scene, void(*onUpdate)(ren::Scene&, float)) {
-        static rpg::ren::wgp::Backend backend(1280, 720);
-        backend.window.setFramebufferSizeCallback<[](
-            glfw::Window&, int width, int height
-        ){
-            backend.onScreenResized(width, height);
-        }>();
-
-        static const std::array<ren::texture::Data<ren::texture::RGBA8, 16, 16>, 2> textureData = {
+    struct State {
+        static constexpr const std::array<ren::texture::Data<ren::texture::RGBA8, 16, 16>, 2> TextureData = {
             ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 255, 255, 255}),
             ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 0, 0, 255}),
         };
-        static const auto texture = ren::Texture(
-            backend.device, 16, 16, 2, textureData.data(),
-            wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
-        );
 
-        static const auto worldUniforms = backend.createUniforms<glm::mat4>(
-            glm::perspective(
-                70.0f, 128.0f / 72.0f, 0.01f, 20.0f
-            ) * glm::lookAt(
-                glm::vec3(5.0f),
-                glm::vec3(0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f)
-            )
-        );
-        static const wgpu::BindGroup worldBindGroup = backend.makeWorldBindGroup(
-            worldUniforms.offset,
-            "World Bind Group"
-        );
+        ren::wgp::Backend backend;
+        ren::Scene scene;
+        ren::Texture texture;
+        ren::wgp::StackUniformBuffer::Uniforms<glm::mat4> worldUniforms;
+        wgpu::BindGroup worldBindGroup;
+        wgpu::BindGroup objectBindGroup;
+        void (*onUpdate)(ren::Scene& scene, float deltaTime);
+        float oldTime;
 
-        static const wgpu::BindGroup bindGroup = backend.makeModelBindGroup(
-            texture.view,
-            "Object Bind Group"
-        );
+        State(
+            ren::Scene&& Scene,
+            void (*OnUpdate)(ren::Scene& scene, float deltaTime)
+        ) : backend(1280, 720),
+            scene(std::forward<ren::Scene>(Scene)),
+            texture(ren::Texture(
+                backend.device, 16, 16, 2, TextureData.data(),
+                wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
+            )), worldUniforms(backend.createUniforms<glm::mat4>(
+                glm::perspective(
+                    70.0f, 128.0f / 72.0f, 0.01f, 20.0f
+                ) * glm::lookAt(
+                    glm::vec3(5.0f),
+                    glm::vec3(0.0f),
+                    glm::vec3(0.0f, 1.0f, 0.0f)
+                )
+            )), worldBindGroup(backend.makeWorldBindGroup(
+                worldUniforms.offset, "World Bind Group"
+            )), objectBindGroup(backend.makeModelBindGroup(
+                texture.view, "Object Bind Group"
+            )), onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
+        {
+            backend.window.setUserPointer(&backend);
+            backend.window.setFramebufferSizeCallback<[](
+                glfw::Window& window, int width, int height
+            ){
+                window.getUserPointer<ren::wgp::Backend>()->onScreenResized(width, height);
+            }>();
+        }
 
-        static ren::Scene scene = std::forward<ren::Scene>(Scene);
-        static void(*upd)(ren::Scene&, float) = onUpdate;
-
-        static float oldTime = static_cast<float>(glfw::getTime());
-        static const auto render = []() {
+        void update() {
             float newTime = static_cast<float>(glfw::getTime());
             float deltaTime = newTime - oldTime;
             oldTime = newTime;
 
-            upd(scene, deltaTime);
+            onUpdate(scene, deltaTime);
 
             struct InstanceData {
                 glm::mat4 M;
@@ -79,27 +84,31 @@ namespace rpg {
                 M.data(), M.size() * sizeof(InstanceData)
             );
 
-            backend.draw([](
+            backend.draw([this](
                 ren::wgp::LitRenderer::Pass pass
             ){
                 using namespace ren::wgp;
                 pass.setWorldBindGroup(worldBindGroup);
-                pass.setObjectBindGroup(bindGroup);
+                pass.setObjectBindGroup(objectBindGroup);
                 pass.draw(
                     constmeshbuffer::CylinderPointer,
                     0,
                     static_cast<uint32_t>(scene.entries.size())
                 );
             });
-        };
+        }
+    };
+
+    void runGame(ren::Scene&& Scene, void(*onUpdate)(ren::Scene&, float)) {
+        State state(std::forward<ren::Scene>(Scene), onUpdate);
 #if defined(__EMSCRIPTEN__)
-        emscripten_set_main_loop(render, 0, false);
+        emscripten::set_main_loop([s = std::move(state)]() mutable{ s.update(); }, 0, false);
 #else
-        while (!backend.window.shouldClose()) {
+        while (!state.backend.window.shouldClose()) {
             glfw::pollEvents();
-            render();
-            backend.surface.Present();
-            backend.instance.ProcessEvents();
+            state.update();
+            state.backend.surface.Present();
+            state.backend.instance.ProcessEvents();
         }
 #endif
     }

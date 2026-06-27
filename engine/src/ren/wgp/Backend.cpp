@@ -241,8 +241,8 @@ namespace rpg::ren::wgp {
 		}
     }
     Backend::~Backend() {
-        depthTexture.Destroy();
-        multipleTexture.Destroy();
+        // depthTexture.Destroy();
+        // multipleTexture.Destroy();
     }
 
 	wgpu::BindGroup Backend::makeWorldBindGroup(

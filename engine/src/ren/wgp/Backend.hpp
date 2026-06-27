@@ -70,6 +70,9 @@ namespace rpg::ren::wgp {
         StackUniformBuffer uniforms;
 
         Backend(uint32_t width, uint32_t height);
+        Backend(const Backend&) = delete;
+        Backend& operator=(const Backend&) = delete;
+        Backend(Backend&&) = default;
         ~Backend();
 
         wgpu::BindGroup makeWorldBindGroup(
