@@ -28,14 +28,15 @@ namespace rpg {
         void (*onUpdate)(ren::Scene& scene, float deltaTime);
         float oldTime;
 
+        template <typename SceneT>
         State(
-            ren::Scene&& Scene,
+            SceneT&& Scene,
             void (*OnUpdate)(ren::Scene& scene, float deltaTime)
         ) : window([]() -> glfw::Window& {
                 glfw::Window::hint(glfw::ClientApi::NoApi);
                 return glfw::createWindow(1280, 720);
             }()), backend(window, 1280, 720),
-            scene(std::forward<ren::Scene>(Scene)),
+            scene(std::forward<SceneT>(Scene)),
             texture(ren::Texture(
                 backend.device, 16, 16, 2, TextureData.data(),
                 wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
@@ -101,19 +102,24 @@ namespace rpg {
                 );
             });
         }
+        static void run(State&& state) {
+        #if defined(__EMSCRIPTEN__)
+            emscripten::set_main_loop([s = std::move(state)]() mutable{ s.update(); }, 0, false);
+        #else
+            while (!state.window.shouldClose()) {
+                glfw::pollEvents();
+                state.update();
+                state.backend.surface.Present();
+                state.backend.instance.ProcessEvents();
+            }
+        #endif
+        }
     };
 
+    void runGame(const ren::Scene& Scene, void(*onUpdate)(ren::Scene&, float)) {
+        State::run(State(Scene, onUpdate));
+    }
     void runGame(ren::Scene&& Scene, void(*onUpdate)(ren::Scene&, float)) {
-        State state(std::forward<ren::Scene>(Scene), onUpdate);
-#if defined(__EMSCRIPTEN__)
-        emscripten::set_main_loop([s = std::move(state)]() mutable{ s.update(); }, 0, false);
-#else
-        while (!state.window.shouldClose()) {
-            glfw::pollEvents();
-            state.update();
-            state.backend.surface.Present();
-            state.backend.instance.ProcessEvents();
-        }
-#endif
+        State::run(State(std::move(Scene), onUpdate));
     }
 }
