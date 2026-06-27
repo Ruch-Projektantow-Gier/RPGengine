@@ -1,4 +1,4 @@
-#include <rpg/ren/wgp/TextRenderer.hpp>
+#include "TextRenderer.hpp"
 
 #include <string>
 #include <array>

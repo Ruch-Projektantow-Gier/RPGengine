@@ -4,16 +4,33 @@
 
 namespace rpg::ren::wgp {
     namespace buffer {
+        template <typename T> struct ThinPointer;
         struct ThinVoidPointer;
+
+        template <typename T> struct Pointer;
+        struct VoidPointer;
+
+        template <typename T> struct PointerWithQueue;
+        struct VoidPointerWithQueue;
 
         template <typename T>
         struct ThinPointer {
             size_t _offset;
+
+            constexpr ThinPointer(size_t Offset) : _offset(Offset) {}
+
+            explicit constexpr ThinPointer(ThinVoidPointer ptr);
+            explicit constexpr ThinPointer(Pointer<T> ptr);
+            explicit constexpr ThinPointer(VoidPointer ptr);
+
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return sizeof(T); }
+
             void write(
                 const wgpu::Queue& queue,
                 const wgpu::Buffer& buffer,
                 const T& data
-            ) {
+            ) const {
                 queue.WriteBuffer(
                     buffer,
                     _offset,
@@ -27,20 +44,16 @@ namespace rpg::ren::wgp {
             size_t _offset;
             size_t _size;
 
-            ThinVoidPointer() = default;
+            constexpr ThinVoidPointer(size_t Offset, size_t Size) : _offset(Offset), _size(Size) {}
 
-            template<typename T>
-            explicit ThinVoidPointer(ThinPointer<T> ptr) : _offset(ptr._offset), _size(sizeof(T)) {}
 
-            void write(
-                const wgpu::Queue& queue,
-                const wgpu::Buffer& buffer,
-                const void* data,
-                size_t size
-            ) const {
-                assert(size < _size);
-                queue.WriteBuffer(buffer, _offset, data, size);
-            }
+            template <typename T> explicit constexpr ThinVoidPointer(ThinPointer<T> ptr);
+            template <typename T> explicit constexpr ThinVoidPointer(Pointer<T> ptr);
+            explicit constexpr ThinVoidPointer(VoidPointer ptr);
+
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return _size; }
+
             void write(
                 const wgpu::Queue& queue,
                 const wgpu::Buffer& buffer,
@@ -48,18 +61,22 @@ namespace rpg::ren::wgp {
             ) const {
                 queue.WriteBuffer(buffer, _offset, data, _size);
             }
-
-            template <typename T>
-            ThinPointer<T> typed() const {
-                assert(_size == sizeof(T));
-                return { ._offset = _offset };
-            }
         };
 
         template <typename T>
         struct Pointer {
-            const wgpu::Buffer& _buffer;
+            wgpu::Buffer _buffer;
             size_t _offset;
+
+            constexpr Pointer(
+                const wgpu::Buffer& Buffer, size_t Offset
+            ) : _buffer(Buffer), _offset(Offset) {}
+            constexpr Pointer(const VoidPointer& ptr);
+
+            wgpu::Buffer buffer() { return _buffer; }
+            const wgpu::Buffer& buffer() const { return _buffer; }
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return sizeof(T); }
 
             void write(const wgpu::Queue& queue, const T& data) const {
                 queue.WriteBuffer(_buffer, _offset, &data, sizeof(T));
@@ -67,7 +84,7 @@ namespace rpg::ren::wgp {
         };
 
         struct VoidPointer {
-            const wgpu::Buffer& _buffer;
+            wgpu::Buffer _buffer;
             size_t _offset;
             size_t _size;
 
@@ -76,27 +93,25 @@ namespace rpg::ren::wgp {
                 size_t Offset, size_t Size
             ) : _buffer(Buffer), _offset(Offset), _size(Size) {}
 
-            void write(const wgpu::Queue& queue, const void* data) const {
-                queue.WriteBuffer(_buffer, _offset, data, _size);
-            }
-
             template <typename T>
             VoidPointer(Pointer<T> ptr) :
-            _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T)) {}
+            _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T))
+            {}
 
-            template <typename T>
-            Pointer<T> typed() const {
-                return {
-                    ._buffer = _buffer,
-                    ._offset = _offset,
-                };
+            wgpu::Buffer buffer() { return _buffer; }
+            const wgpu::Buffer& buffer() const { return _buffer; }
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return _size; }
+
+            void write(const wgpu::Queue& queue, const void* data) const {
+                queue.WriteBuffer(_buffer, _offset, data, _size);
             }
         };
 
         template <typename T>
         struct PointerWithQueue {
-            const wgpu::Buffer& _buffer;
-            const wgpu::Queue& _queue;
+            wgpu::Buffer _buffer;
+            wgpu::Queue _queue;
             size_t _offset;
 
             PointerWithQueue(
@@ -105,8 +120,20 @@ namespace rpg::ren::wgp {
                 size_t Offset
             ) : _buffer(Buffer), _queue(Queue), _offset(Offset) {}
 
+            wgpu::Queue queue() { return _queue; }
+            const wgpu::Queue& queue() const { return _queue; }
+            wgpu::Buffer buffer() { return _buffer; }
+            const wgpu::Buffer& buffer() const { return _buffer; }
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return sizeof(T); }
+
             void write(const T& data) const {
-                _queue.WriteBuffer(_buffer, _offset, &data, sizeof(T));
+                _queue.WriteBuffer(
+                    _buffer,
+                    _offset,
+                    &data,
+                    sizeof(T)
+                );
             }
         };
 
@@ -121,6 +148,11 @@ namespace rpg::ren::wgp {
                 const wgpu::Queue& Queue,
                 size_t Offset, size_t Size
             ) : _buffer(Buffer), _queue(Queue), _offset(Offset), _size(Size) {}
+
+            const wgpu::Queue& queue() const { return _queue; }
+            const wgpu::Buffer& buffer() const { return _buffer; }
+            constexpr size_t offset() const { return _offset; }
+            constexpr size_t size() const { return _size; }
 
             void write(const void* data) const {
                 _queue.WriteBuffer(
@@ -139,6 +171,21 @@ namespace rpg::ren::wgp {
                 );
             }
         };
+
+        template <typename T>
+        constexpr ThinPointer<T>::ThinPointer(ThinVoidPointer ptr) : _offset(ptr.offset()) {
+            assert(ptr.size() == sizeof(T));
+        }
+
+        template<typename T>
+        constexpr ThinVoidPointer::ThinVoidPointer(ThinPointer<T> ptr) : _offset(ptr.offset()), _size(sizeof(T)) {}
+
+        template <typename T>
+        constexpr Pointer<T>::Pointer(
+            const VoidPointer& ptr
+        ) : _buffer(ptr.buffer()), _offset(ptr.offset()) {
+            assert(ptr.size() == sizeof(T));
+        }
 
     };
 

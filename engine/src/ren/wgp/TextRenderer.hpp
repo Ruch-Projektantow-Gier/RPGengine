@@ -2,8 +2,8 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <webgpu/webgpu_cpp.h>
-#include <rpg/ren/wgp/StackBuffer.hpp>
-#include <rpg/ren/texture.hpp>
+#include "StackBuffer.hpp"
+#include "texture.hpp"
 
 namespace rpg::ren::wgp {
     struct TextRenderer {

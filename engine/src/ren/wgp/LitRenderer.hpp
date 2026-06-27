@@ -1,7 +1,8 @@
 #pragma once
 
-#include "constmeshbuffer.hpp"
+#include <glm/glm.hpp>
 #include <webgpu/webgpu_cpp.h>
+#include "constmeshbuffer.hpp"
 
 namespace rpg::ren::wgp {
     struct LitRenderer {

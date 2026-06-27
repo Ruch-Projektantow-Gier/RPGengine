@@ -3,8 +3,7 @@
 #include <glfw.hpp>
 #include <webgpu/webgpu_cpp.h>
 
-#include <rpg/ren/wgp/StackBuffer.hpp>
-#include <rpg/ren/wgp/StackUniformBuffer.hpp>
+#include "StackUniformBuffer.hpp"
 #include "LitRenderer.hpp"
 #include "constmeshbuffer.hpp"
 
@@ -19,9 +18,10 @@ namespace rpg::ren::wgp {
         glfw::Window::hint(glfw::ClientApi::NoApi);
     }
 
-    glfw::Window& makeWindow(int width, int height);
     wgpu::Instance makeInstance();
+
     wgpu::Adapter makeAdapter(const wgpu::Instance& instance);
+
     wgpu::Device makeDevice(
         const wgpu::Instance& instance,
         const wgpu::Adapter& adapter
