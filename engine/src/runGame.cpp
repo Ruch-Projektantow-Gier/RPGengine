@@ -16,7 +16,7 @@ namespace rpg {
         glfw::Window& window;
         ren::wgp::Backend backend;
         ren::Scene scene;
-        ren::Texture texture;
+        ren::wgp::Texture texture;
         ren::wgp::StackUniformBuffer::Uniforms<glm::mat4> worldUniforms;
         wgpu::BindGroup worldBindGroup;
         wgpu::BindGroup objectBindGroup;
@@ -33,14 +33,14 @@ namespace rpg {
                 return glfw::createWindow(1280, 720);
             }()), backend(window, 1280, 720),
             scene(std::forward<SceneT>(Scene)),
-            texture(ren::Texture(
+            texture(ren::wgp::Texture(
                 backend.device,
                 TextureData.width,
                 TextureData.height,
                 TextureData.count,
                 TextureData.data,
                 wgpu::TextureFormat::RGBA8Unorm,
-                "Color Texture"
+                "Color Texture Array"
             )), worldUniforms(backend.createUniforms<glm::mat4>(
                 glm::perspective(
                     70.0f, 128.0f / 72.0f, 0.01f, 20.0f

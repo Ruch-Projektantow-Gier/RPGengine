@@ -2,7 +2,7 @@
 #include <webgpu/webgpu_cpp.h>
 #include <rpg/ren/texture.hpp>
 
-namespace rpg::ren {
+namespace rpg::ren::wgp {
     namespace texture {
         constexpr uint8_t bytesPerPixel(wgpu::TextureFormat format) {
             switch (format) {
@@ -67,48 +67,113 @@ namespace rpg::ren {
         struct FormatTraits;
 
         template <>
-        struct FormatTraits<RGBA8> {
+        struct FormatTraits<ren::texture::RGBA8> {
             inline static constexpr wgpu::TextureFormat WGPUFormat = wgpu::TextureFormat::RGBA8Unorm;
         };
 
         template <typename T>
         inline constexpr wgpu::TextureFormat formatOf = FormatTraits<T>::WGPUFormat;
+
+        inline wgpu::Texture create(
+            const wgpu::Device& device,
+            const wgpu::TextureDescriptor& descriptor
+        ) {
+            return device.CreateTexture(&descriptor);
+        }
+
+        namespace view {
+            inline wgpu::TextureView create(
+                const wgpu::Texture& texture,
+                const wgpu::TextureViewDescriptor& descriptor
+            ) {
+                return texture.CreateView(&descriptor);
+            }
+        }
     }
     struct Texture {
         wgpu::Texture texture;
         wgpu::TextureView view;
 
         Texture() = default;
+
+        Texture(
+            const wgpu::Texture& texture_,
+            const wgpu::TextureView& view_
+        ) : texture(texture_), view(view_) {}
+        Texture(
+            const wgpu::Texture& texture_,
+            wgpu::TextureView&& view_
+        ) : texture(texture_), view(std::move(view_)) {}
+        Texture(
+            wgpu::Texture&& texture_,
+            const wgpu::TextureView& view_
+        ) : texture(std::move(texture_)), view(view_) {}
+        Texture(
+            wgpu::Texture&& texture_,
+            wgpu::TextureView&& view_
+        ) : texture(std::move(texture_)), view(std::move(view_)) { }
+
         Texture(
             const wgpu::Device& device,
-            uint32_t width, uint32_t height, uint32_t layers,
+            uint32_t width, uint32_t height, uint32_t count,
+            wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
+            std::string_view label = std::string_view()
+        ) : texture(wgp::texture::create(device, {
+            .label = label,
+            .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
+            .dimension = wgpu::TextureDimension::e2D,
+            .size = { width, height, count },
+            .format = format,
+        })), view(wgp::texture::view::create(texture, {
+            .label = label,
+            .format = format,
+            .dimension = wgpu::TextureViewDimension::e2DArray,
+            .baseMipLevel = 0,
+            .mipLevelCount = 1,
+            .baseArrayLayer = 0,
+            .arrayLayerCount = count,
+            .aspect = wgpu::TextureAspect::All,
+        })) {}
+
+        Texture(
+            const wgpu::Device& device,
+            uint32_t width, uint32_t height,
+            wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
+            std::string_view label = std::string_view()
+        ) : texture(wgp::texture::create(device, {
+            .label = label,
+            .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
+            .dimension = wgpu::TextureDimension::e2D,
+            .size = { width, height, 1 },
+            .format = format,
+        })), view(wgp::texture::view::create(texture, {
+            .label = label,
+            .format = format,
+            .dimension = wgpu::TextureViewDimension::e2D,
+            .baseMipLevel = 0,
+            .mipLevelCount = 1,
+            .baseArrayLayer = 0,
+            .arrayLayerCount = 1,
+            .aspect = wgpu::TextureAspect::All,
+        })) { }
+
+        Texture(
+            const wgpu::Device& device,
+            uint32_t width, uint32_t height, uint32_t count,
             const void* data,
             wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
             std::string_view label = std::string_view()
-        ) : texture([&device, width, height, layers, format, label](){
-            wgpu::TextureDescriptor desc {
-                .label = label,
-                .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
-                .dimension = wgpu::TextureDimension::e2D,
-                .size = { width, height, layers },
-                .format = format,
-            };
-            return device.CreateTexture(&desc);
+        ) : Texture(device, width, height, count, format, label) {
+            write(device.GetQueue(), width, height, count, format, data);
+        }
 
-        }()), view([this, layers, format, label](){
-            wgpu::TextureViewDescriptor desc {
-                .label = label,
-                .format = format,
-                .dimension = wgpu::TextureViewDimension::e2DArray,
-                .baseMipLevel = 0,
-                .mipLevelCount = 1,
-                .baseArrayLayer = 0,
-                .arrayLayerCount = layers,
-                .aspect = wgpu::TextureAspect::All,
-            };
-            return texture.CreateView(&desc);
-        }()) {
-            uint32_t bytesPerPixel = texture::bytesPerPixel(format);
+        void write(
+            const wgpu::Queue& queue,
+            uint32_t width, uint32_t height, uint32_t count,
+            wgpu::TextureFormat format,
+            const void* data
+        ) const {
+            uint32_t bytesPerPixel = wgp::texture::bytesPerPixel(format);
             wgpu::TexelCopyTextureInfo destination {
                 .texture = texture,
                 .mipLevel = 0,
@@ -121,80 +186,23 @@ namespace rpg::ren {
                 .rowsPerImage = height,
             };
 
-            wgpu::Extent3D size = { width, height, layers };
-            device.GetQueue().WriteTexture(
+            wgpu::Extent3D size = { width, height, count };
+            queue.WriteTexture(
                 &destination,
                 data,
-                static_cast<size_t>(bytesPerPixel) * width * height * layers,
+                static_cast<size_t>(bytesPerPixel) * width * height * count,
                 &source,
                 &size
             );
         }
-
-        inline static Texture make(
-            const wgpu::Device& device,
-            uint32_t width, uint32_t height, const void* data,
-            wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
-            std::string_view label = std::string_view()
-        ) {
-            Texture res;
-            uint32_t bytesPerPixel = texture::bytesPerPixel(format);
-            wgpu::TextureDescriptor desc {
-                .label = label,
-                .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
-                .dimension = wgpu::TextureDimension::e2D,
-                .size = { width, height, 1 },
-                .format = format,
-            };
-            res.texture = device.CreateTexture(&desc);
-
-            wgpu::TexelCopyTextureInfo destination {
-                .texture = res.texture,
-                .mipLevel = 0,
-                .origin = { 0, 0, 0 },
-                .aspect = wgpu::TextureAspect::All,
-            };
-            wgpu::TexelCopyBufferLayout source {
-                .offset = 0,
-                .bytesPerRow = bytesPerPixel * width,
-                .rowsPerImage = height,
-            };
-
-            device.GetQueue().WriteTexture(
-                &destination,
-                data,
-                static_cast<size_t>(bytesPerPixel) * width * height,
-                &source,
-                &desc.size
-            );
-
-            wgpu::TextureViewDescriptor vdesc {
-                .label = label,
-                .format = format,
-                .dimension = wgpu::TextureViewDimension::e2D,
-                .baseMipLevel = 0,
-                .mipLevelCount = desc.mipLevelCount,
-                .baseArrayLayer = 0,
-                .arrayLayerCount = 1,
-                .aspect = wgpu::TextureAspect::All,
-            };
-            res.view = res.texture.CreateView(&vdesc);
-            return res;
-        }
-
-        inline static Texture make(
-            const wgpu::Device& device,
-            const auto& data,
-            wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
-            std::string_view label = std::string_view()
-        ) {
-            return make(
-                device,
-                static_cast<uint32_t>(data.width()),
-                static_cast<uint32_t>(data.height()),
-                data.data(),
-                format,
-                label
+        void write(const wgpu::Queue& queue, const void* data) {
+            write(
+                queue,
+                texture.GetWidth(),
+                texture.GetHeight(),
+                texture.GetDepthOrArrayLayers(),
+                texture.GetFormat(),
+                data
             );
         }
     };
