@@ -13,11 +13,6 @@
 
 namespace rpg {
     struct State {
-        static constexpr const std::array<ren::texture::Data<ren::texture::RGBA8, 16, 16>, 2> TextureData = {
-            ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 255, 255, 255}),
-            ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 0, 0, 255}),
-        };
-
         glfw::Window& window;
         ren::wgp::Backend backend;
         ren::Scene scene;
@@ -30,6 +25,7 @@ namespace rpg {
 
         template <typename SceneT>
         State(
+            TextureDataView TextureData,
             SceneT&& Scene,
             void (*OnUpdate)(ren::Scene& scene, float deltaTime)
         ) : window([]() -> glfw::Window& {
@@ -38,8 +34,13 @@ namespace rpg {
             }()), backend(window, 1280, 720),
             scene(std::forward<SceneT>(Scene)),
             texture(ren::Texture(
-                backend.device, 16, 16, 2, TextureData.data(),
-                wgpu::TextureFormat::RGBA8Unorm, "Color Texture"
+                backend.device,
+                TextureData.width,
+                TextureData.height,
+                TextureData.count,
+                TextureData.data,
+                wgpu::TextureFormat::RGBA8Unorm,
+                "Color Texture"
             )), worldUniforms(backend.createUniforms<glm::mat4>(
                 glm::perspective(
                     70.0f, 128.0f / 72.0f, 0.01f, 20.0f
@@ -116,10 +117,22 @@ namespace rpg {
         }
     };
 
-    void runGame(const ren::Scene& Scene, void(*onUpdate)(ren::Scene&, float)) {
-        State::run(State(Scene, onUpdate));
+    void runGame(
+        TextureDataView TextureData,
+        const ren::Scene& Scene,
+        void(*onUpdate)(ren::Scene&, float)
+    ) {
+        State::run(State(
+            TextureData, Scene, onUpdate
+        ));
     }
-    void runGame(ren::Scene&& Scene, void(*onUpdate)(ren::Scene&, float)) {
-        State::run(State(std::move(Scene), onUpdate));
+    void runGame(
+        TextureDataView TextureData,
+        ren::Scene&& Scene,
+        void(*onUpdate)(ren::Scene&, float)
+    ) {
+        State::run(State(
+            TextureData, std::move(Scene), onUpdate
+        ));
     }
 }

@@ -1,10 +1,22 @@
 #include <rpg/runGame.hpp>
+#include <rpg/ren/texture.hpp>
 
 int main() {
 	using namespace rpg;
 	using namespace rpg::math;
 
+	static constexpr const std::array<ren::texture::Data<ren::texture::RGBA8, 16, 16>, 2> TextureData = {
+		ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 255, 255, 255}),
+		ren::texture::Data<ren::texture::RGBA8, 16, 16>({255, 0, 0, 255}),
+	};
+
 	rpg::runGame(
+		{
+			.width = 16,
+			.height = 16,
+			.count = 2,
+			.data = TextureData.data()
+		},
 		{
 			.entries = {
 				{
