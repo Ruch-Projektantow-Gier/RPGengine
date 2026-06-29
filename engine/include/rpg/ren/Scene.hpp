@@ -14,5 +14,12 @@ namespace rpg::ren {
             math::Vec3f scale;
         };
         std::vector<Entry> entries;
+        struct {
+            math::Vec3f position;
+            math::Vec3f center = math::Vec3f(0.0f);
+            float fov = 70.0f;
+            float near = 0.1f;
+            float far = 1000.0f;
+        } camera;
     };
 }

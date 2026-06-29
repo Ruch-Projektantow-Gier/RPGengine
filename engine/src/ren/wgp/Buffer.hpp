@@ -4,6 +4,13 @@
 
 namespace rpg::ren::wgp {
     namespace buffer {
+        inline wgpu::Buffer create(
+            const wgpu::Device& device,
+            const wgpu::BufferDescriptor& desc
+        ) {
+            return device.CreateBuffer(&desc);
+        }
+
         template <typename T> struct ThinPointer;
         struct ThinVoidPointer;
 
@@ -17,11 +24,11 @@ namespace rpg::ren::wgp {
         struct ThinPointer {
             size_t _offset;
 
-            constexpr ThinPointer(size_t Offset) : _offset(Offset) {}
+            explicit constexpr ThinPointer(size_t Offset) : _offset(Offset) {}
 
             explicit constexpr ThinPointer(ThinVoidPointer ptr);
             explicit constexpr ThinPointer(Pointer<T> ptr);
-            explicit constexpr ThinPointer(VoidPointer ptr);
+            explicit constexpr ThinPointer(const VoidPointer& ptr);
 
             constexpr size_t offset() const { return _offset; }
             constexpr size_t size() const { return sizeof(T); }
@@ -46,10 +53,9 @@ namespace rpg::ren::wgp {
 
             constexpr ThinVoidPointer(size_t Offset, size_t Size) : _offset(Offset), _size(Size) {}
 
-
             template <typename T> explicit constexpr ThinVoidPointer(ThinPointer<T> ptr);
             template <typename T> explicit constexpr ThinVoidPointer(Pointer<T> ptr);
-            explicit constexpr ThinVoidPointer(VoidPointer ptr);
+            explicit constexpr ThinVoidPointer(const VoidPointer& ptr);
 
             constexpr size_t offset() const { return _offset; }
             constexpr size_t size() const { return _size; }
@@ -71,6 +77,10 @@ namespace rpg::ren::wgp {
             constexpr Pointer(
                 const wgpu::Buffer& Buffer, size_t Offset
             ) : _buffer(Buffer), _offset(Offset) {}
+            constexpr Pointer(
+                wgpu::Buffer&& Buffer, size_t Offset
+            ) : _buffer(std::move(Buffer)), _offset(Offset) {}
+
             constexpr Pointer(const VoidPointer& ptr);
 
             wgpu::Buffer buffer() { return _buffer; }
@@ -93,10 +103,7 @@ namespace rpg::ren::wgp {
                 size_t Offset, size_t Size
             ) : _buffer(Buffer), _offset(Offset), _size(Size) {}
 
-            template <typename T>
-            VoidPointer(Pointer<T> ptr) :
-            _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T))
-            {}
+            template <typename T> VoidPointer(Pointer<T> ptr);
 
             wgpu::Buffer buffer() { return _buffer; }
             const wgpu::Buffer& buffer() const { return _buffer; }
@@ -138,8 +145,8 @@ namespace rpg::ren::wgp {
         };
 
         struct VoidPointerWithQueue {
-            const wgpu::Buffer& _buffer;
-            const wgpu::Queue& _queue;
+            wgpu::Buffer _buffer;
+            wgpu::Queue _queue;
             size_t _offset;
             size_t _size;
 
@@ -149,7 +156,11 @@ namespace rpg::ren::wgp {
                 size_t Offset, size_t Size
             ) : _buffer(Buffer), _queue(Queue), _offset(Offset), _size(Size) {}
 
+            template <typename T> VoidPointerWithQueue(Pointer<T> ptr);
+
+            wgpu::Queue queue() { return _queue; }
             const wgpu::Queue& queue() const { return _queue; }
+            wgpu::Buffer buffer() { return _buffer; }
             const wgpu::Buffer& buffer() const { return _buffer; }
             constexpr size_t offset() const { return _offset; }
             constexpr size_t size() const { return _size; }
@@ -159,33 +170,67 @@ namespace rpg::ren::wgp {
                     _buffer, _offset, data, _size
                 );
             }
-
             template <typename T>
-            VoidPointerWithQueue(Pointer<T> ptr) :
-            _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T)) {}
-
-            template <typename T>
-            PointerWithQueue<T> typed() const {
-                return PointerWithQueue<T>(
-                    _buffer, _queue, _offset
-                );
+            void write(const T& data) const {
+                assert(sizeof(T) == _size);
+                write(&data);
             }
         };
 
+        // ThinPointer
+
         template <typename T>
-        constexpr ThinPointer<T>::ThinPointer(ThinVoidPointer ptr) : _offset(ptr.offset()) {
+        constexpr ThinPointer<T>::ThinPointer(
+            ThinVoidPointer ptr
+        ) : _offset(ptr.offset()) {
+            assert(ptr.size() == sizeof(T));
+        }
+        template <typename T>
+        constexpr ThinPointer<T>::ThinPointer(
+            Pointer<T> ptr
+        ) : _offset(ptr.offset()) {
+            assert(ptr.size() == sizeof(T));
+        }
+        template <typename T>
+        constexpr ThinPointer<T>::ThinPointer(
+            const VoidPointer& ptr
+        ) : _offset(ptr.offset()) {
             assert(ptr.size() == sizeof(T));
         }
 
-        template<typename T>
-        constexpr ThinVoidPointer::ThinVoidPointer(ThinPointer<T> ptr) : _offset(ptr.offset()), _size(sizeof(T)) {}
+        // ThinVoidPointer
 
+        template<typename T>
+        constexpr ThinVoidPointer::ThinVoidPointer(
+            ThinPointer<T> ptr
+        ) : _offset(ptr.offset()), _size(sizeof(T)) {}
+
+        template<typename T>
+        constexpr ThinVoidPointer::ThinVoidPointer(
+            Pointer<T> ptr
+        ) : _offset(ptr.offset()), _size(sizeof(T)) {}
+
+        constexpr ThinVoidPointer::ThinVoidPointer(
+            const VoidPointer& ptr
+        ) : _offset(ptr.offset()), _size(ptr.size()) {}
+
+        // Pointer
         template <typename T>
         constexpr Pointer<T>::Pointer(
             const VoidPointer& ptr
         ) : _buffer(ptr.buffer()), _offset(ptr.offset()) {
             assert(ptr.size() == sizeof(T));
         }
+
+        // VoidPointer
+        template <typename T>
+        VoidPointer::VoidPointer(
+            Pointer<T> ptr
+        ) : _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T)) {}
+
+        template <typename T>
+        VoidPointerWithQueue::VoidPointerWithQueue(Pointer<T> ptr) :
+        _buffer(ptr._buffer), _offset(ptr._offset), _size(sizeof(T)) {}
 
     };
 

@@ -15,7 +15,7 @@ namespace rpg::ren::wgp {
         const wgpu::Device& device,
         const wgpu::Sampler& sampler,
         wgpu::TextureFormat colorFormat,
-		StackBuffer::pointer InstanceBufferPointer,
+		BumpAllocatedBuffer::pointer InstanceBufferPointer,
 		float AspectRatio
     ) : fontTexture(Texture::make(
         device,

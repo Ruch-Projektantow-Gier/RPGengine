@@ -4,7 +4,7 @@
 #include "webgpu/webgpu_cpp.h"
 
 namespace rpg::ren::wgp {
-    struct StackBuffer {
+    struct BumpAllocatedBuffer {
         wgpu::Buffer buffer;
         size_t offset;
 
@@ -39,7 +39,7 @@ namespace rpg::ren::wgp {
             }
         };
 
-        StackBuffer(
+        BumpAllocatedBuffer(
             const wgpu::Device& device,
             const wgpu::BufferDescriptor& desc
         ) : buffer(device.CreateBuffer(&desc)), offset(0) {}

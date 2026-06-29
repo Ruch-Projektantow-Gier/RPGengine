@@ -8,7 +8,6 @@
 
 #include <rpg/ren/mesh.hpp>
 #include "Backend.hpp"
-#include "constmeshbuffer.hpp"
 
 namespace rpg::ren::wgp {
     wgpu::Instance makeInstance() {
@@ -198,7 +197,11 @@ namespace rpg::ren::wgp {
 		return device.CreateBuffer(&desc);
 	}
 
-    Backend::Backend(glfw::Window& window, uint32_t width, uint32_t height) :
+    Backend::Backend(
+		glfw::Window& window,
+		uint32_t width, uint32_t height,
+		const Resources::Descriptor& resourcesDescriptor
+	) :
         instance(makeInstance()),
         adapter(makeAdapter(instance)),
         device(makeDevice(instance, adapter)),
@@ -209,23 +212,13 @@ namespace rpg::ren::wgp {
         depthTextureView(makeDepthTextureView(depthTexture)),
         multipleTexture(makeMultisampleTexture(device, colorFormat, width, height)),
 		litRenderer(device, colorFormat),
-		sampler([](const wgpu::Device& device) {
-			wgpu::SamplerDescriptor desc {
-				.addressModeU = wgpu::AddressMode::Repeat,
-				.addressModeV = wgpu::AddressMode::Repeat,
-				.addressModeW = wgpu::AddressMode::Repeat,
-				.magFilter = wgpu::FilterMode::Linear,
-				.minFilter = wgpu::FilterMode::Linear,
-				.mipmapFilter = wgpu::MipmapFilterMode::Linear,
-				.lodMinClamp = 0.0f,
-				.lodMaxClamp = 1.0f,
-				.compare = wgpu::CompareFunction::Undefined,
-				.maxAnisotropy = 1,
-			};
-			return device.CreateSampler(&desc);
-		}(device)), meshBuffer(constmeshbuffer::create(
-			device, queue, "Const Mesh Buffer"
-		)), uniforms(device)
+		resources(device, queue, resourcesDescriptor),
+		worldUniforms(createUniforms<glm::mat4>()),
+		worldBindGroup(makeWorldBindGroup(
+			worldUniforms.offset(), "World Bind Group"
+		)), objectBindGroup(makeModelBindGroup(
+			resources.textureArray.view, "Object Bind Group"
+		))
 	{
 		auto size = window.getFramebufferSize();
 		assert(static_cast<uint32_t>(size.width) == width);
@@ -239,10 +232,14 @@ namespace rpg::ren::wgp {
 		}
     }
 
-	Backend::Backend(glfw::Window& window) : Backend(
+	Backend::Backend(
+		glfw::Window& window,
+		const Resources::Descriptor& resourcesDescriptor
+	) : Backend(
 		window,
 		window.getFramebufferSize().width,
-		window.getFramebufferSize().height
+		window.getFramebufferSize().height,
+		resourcesDescriptor
 	) {}
 
 	wgpu::BindGroup Backend::makeWorldBindGroup(
@@ -250,7 +247,9 @@ namespace rpg::ren::wgp {
 		std::string_view label
 	) const {
 		return litRenderer.createWorldBindGroup(
-			uniforms._buffer, uniformBufferOffset, label
+			resources.uniformBuffer.buffer(),
+			uniformBufferOffset,
+			label
 		);
 	}
 	wgpu::BindGroup Backend::makeModelBindGroup(
@@ -258,7 +257,7 @@ namespace rpg::ren::wgp {
 		std::string_view label
 	) const {
 		return litRenderer.createModelBindGroup(
-			textureView, sampler, label
+			textureView, resources.sampler, label
 		);
 	}
 
@@ -270,4 +269,73 @@ namespace rpg::ren::wgp {
 		multipleTexture = makeMultisampleTexture(device, colorFormat, width, height);
 		configureSurface(surface, device, colorFormat, width, height);
     }
+
+	void Backend::draw(const Scene& scene) const {
+		static_assert(sizeof(Scene::Instance) == LitRenderer::InstanceSize);
+		queue.WriteBuffer(
+			resources.instanceBuffer,
+			0,
+			scene.objects.data(),
+			scene.objects.size() * sizeof(Scene::Instance)
+		);
+		worldUniforms.write(queue, scene.PV);
+		wgpu::SurfaceTexture surfaceTexture;
+		surface.GetCurrentTexture(&surfaceTexture);
+		wgpu::RenderPassColorAttachment colorAttachment{
+			.view = multipleTexture.CreateView(),
+			.resolveTarget = surfaceTexture.texture.CreateView(),
+			.loadOp = wgpu::LoadOp::Clear,
+			.storeOp = wgpu::StoreOp::Store,
+			.clearValue = wgpu::Color{ 0.0, 0.0, 0.0, 1.0 }
+		};	
+		wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
+			.view = depthTextureView,
+			.depthLoadOp = wgpu::LoadOp::Clear,
+			.depthStoreOp = wgpu::StoreOp::Store,
+			.depthClearValue = 1.0f,
+			.depthReadOnly = false,
+			.stencilLoadOp = wgpu::LoadOp::Undefined,
+			.stencilStoreOp = wgpu::StoreOp::Undefined,
+			.stencilClearValue = 0,
+			.stencilReadOnly = true,
+		};
+		wgpu::RenderPassDescriptor renderpass{
+			.colorAttachmentCount = 1,
+			.colorAttachments = &colorAttachment,
+			.depthStencilAttachment = &depthStencilAttachment,
+		};
+		wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
+		wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderpass);
+		pass.SetPipeline(litRenderer.pipeline);
+		pass.SetIndexBuffer(
+			resources.meshBuffer,
+			wgpu::IndexFormat::Uint32
+		);
+		pass.SetVertexBuffer(
+			LitRenderer::InstanceBufferSlot,
+			resources.instanceBuffer
+		);
+		pass.SetBindGroup(LitRenderer::WorldBindGroupIndex, worldBindGroup);
+		pass.SetBindGroup(LitRenderer::ObjectBindGroupIndex, objectBindGroup);
+		for (size_t i = 0; i < constmeshbuffer::MeshPointers.size(); ++i) {
+			if (scene.calls[i].instanceCount == 0) continue;
+			constmeshbuffer::Pointer p = constmeshbuffer::MeshPointers[i];
+			pass.SetVertexBuffer(
+				LitRenderer::VertexBufferSlot,
+				resources.meshBuffer,
+				p.vertexOffset(),
+				p.vertexDataSize()
+			);
+			pass.DrawIndexed(
+				p.indexCount,
+				scene.calls[i].instanceCount,
+				p.firstIndex(),
+				0,
+				scene.calls[i].firstInstance
+			);
+		}
+		pass.End();
+		wgpu::CommandBuffer commands = encoder.Finish();
+		queue.Submit(1, &commands);
+	}
 }

@@ -2,6 +2,7 @@ add_library(Engine
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runGame.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Backend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/LitRenderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Resources.cpp
 )
 
 # Add namespaced alias to Engine target

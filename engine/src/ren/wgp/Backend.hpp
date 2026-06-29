@@ -3,9 +3,10 @@
 #include <glfw.hpp>
 #include <webgpu/webgpu_cpp.h>
 
-#include "StackUniformBuffer.hpp"
 #include "LitRenderer.hpp"
 #include "constmeshbuffer.hpp"
+#include "Resources.hpp"
+#include "Scene.hpp"
 
 namespace rpg::ren::wgp {
     inline constexpr wgpu::TextureFormat depthFormat = wgpu::TextureFormat::Depth24Plus;
@@ -68,12 +69,20 @@ namespace rpg::ren::wgp {
         wgpu::TextureView depthTextureView;
         wgpu::Texture multipleTexture;
         LitRenderer litRenderer;
-        wgpu::Sampler sampler;
-        wgpu::Buffer meshBuffer;
-        StackUniformBuffer uniforms;
+        Resources resources;
+        ren::wgp::buffer::Pointer<glm::mat4> worldUniforms;
+        wgpu::BindGroup worldBindGroup;
+        wgpu::BindGroup objectBindGroup;
 
-        Backend(glfw::Window& window, uint32_t width, uint32_t height);
-        Backend(glfw::Window& window);
+        Backend(
+            glfw::Window& window,
+            uint32_t width, uint32_t height,
+            const Resources::Descriptor& resourcesDescriptor
+        );
+        Backend(
+            glfw::Window& window,
+            const Resources::Descriptor& resourcesDescriptor
+        );
         Backend(const Backend&) = delete;
         Backend& operator=(const Backend&) = delete;
         Backend(Backend&&) noexcept = default;
@@ -88,22 +97,15 @@ namespace rpg::ren::wgp {
             std::string_view label = std::string_view()
         ) const;
 
-        template <typename T = Uniform>
-        StackUniformBuffer::Uniforms<T> createUniforms() {
-            return uniforms.push<T>(queue);
+        template <typename T>
+        buffer::Pointer<T> createUniforms() {
+            return resources.uniformBuffer.allocate<T>();
         }
-        template <typename T = Uniform>
-        StackUniformBuffer::Uniforms<T> createUniforms(const T& data) {
-            return uniforms.push<T>(queue, data);
-        }
-
-        void writeUniform(size_t offset, const auto& data) const {
-            queue.WriteBuffer(
-                uniforms._buffer,
-                offset,
-                &data,
-                sizeof(data)
-            );
+        template <typename T>
+        buffer::Pointer<T> createUniforms(const T& data) {
+            buffer::Pointer<T> ptr = resources.uniformBuffer.allocate<T>();
+            ptr.write(queue, data);
+            return ptr;
         }
 
         void onScreenResized(uint32_t width, uint32_t height);
@@ -137,41 +139,6 @@ namespace rpg::ren::wgp {
             }
         };
 
-        void draw(auto fillRenderPass) {
-            wgpu::SurfaceTexture surfaceTexture;
-            surface.GetCurrentTexture(&surfaceTexture);
-            wgpu::RenderPassColorAttachment colorAttachment{
-                .view = multipleTexture.CreateView(),
-                .resolveTarget = surfaceTexture.texture.CreateView(),
-                .loadOp = wgpu::LoadOp::Clear,
-                .storeOp = wgpu::StoreOp::Store,
-                .clearValue = wgpu::Color{ 0.0, 0.0, 0.0, 1.0 }
-            };	
-            wgpu::RenderPassDepthStencilAttachment depthStencilAttachment {
-                .view = depthTextureView,
-                .depthLoadOp = wgpu::LoadOp::Clear,
-                .depthStoreOp = wgpu::StoreOp::Store,
-                .depthClearValue = 1.0f,
-                .depthReadOnly = false,
-                .stencilLoadOp = wgpu::LoadOp::Undefined,
-                .stencilStoreOp = wgpu::StoreOp::Undefined,
-                .stencilClearValue = 0,
-                .stencilReadOnly = true,
-            };
-            wgpu::RenderPassDescriptor renderpass{
-                .colorAttachmentCount = 1,
-                .colorAttachments = &colorAttachment,
-                .depthStencilAttachment = &depthStencilAttachment,
-            };
-            wgpu::CommandEncoder encoder = device.CreateCommandEncoder();
-            wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderpass);
-            pass.SetPipeline(litRenderer.pipeline);
-            pass.SetIndexBuffer(meshBuffer, wgpu::IndexFormat::Uint32);
-            pass.SetVertexBuffer(LitRenderer::InstanceBufferSlot, litRenderer.instanceBuffer);
-            fillRenderPass(LitRenderer::Pass { .pass = pass, .vertexBuffer = meshBuffer });
-            pass.End();
-            wgpu::CommandBuffer commands = encoder.Finish();
-            queue.Submit(1, &commands);
-        }
+        void draw(const Scene& scene) const;
     };
 }

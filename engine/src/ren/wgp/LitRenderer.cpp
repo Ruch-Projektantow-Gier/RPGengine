@@ -186,14 +186,6 @@ namespace rpg::ren::wgp {
 			.fragment = &fragmentState,
 		};
 		return device.CreateRenderPipeline(&descriptor);
-    }()), instanceBuffer([this](){
-        wgpu::BufferDescriptor desc {
-            .label = "LitRenderer Instance Buffer",
-            .usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst,
-            .size = MaxObjects * InstanceSize,
-            .mappedAtCreation = false
-        };
-        return device.CreateBuffer(&desc);
     }()) {}
 
     wgpu::BindGroup LitRenderer::createWorldBindGroup(

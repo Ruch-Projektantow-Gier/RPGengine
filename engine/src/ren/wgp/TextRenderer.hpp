@@ -2,7 +2,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <webgpu/webgpu_cpp.h>
-#include "StackBuffer.hpp"
+#include "mem/BumpAllocatedBuffer.hpp"
 #include "texture.hpp"
 
 namespace rpg::ren::wgp {
@@ -19,7 +19,7 @@ namespace rpg::ren::wgp {
         wgpu::PipelineLayout pipelineLayout;
         wgpu::RenderPipeline renderPipeline;
         wgpu::BindGroup bindGroup;
-        StackBuffer::pointer instanceBufferPointer;
+        BumpAllocatedBuffer::pointer instanceBufferPointer;
         size_t charCount;
         float aspectRatio;
 
@@ -27,7 +27,7 @@ namespace rpg::ren::wgp {
             const wgpu::Device& device,
             const wgpu::Sampler& sampler,
             wgpu::TextureFormat colorFormat,
-            StackBuffer::pointer InstanceBufferPointer,
+            BumpAllocatedBuffer::pointer InstanceBufferPointer,
             float AspectRatio
         );
         void draw(

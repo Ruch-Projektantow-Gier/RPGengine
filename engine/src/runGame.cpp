@@ -7,19 +7,13 @@
 
 #include <rpg/ren/mesh.hpp>
 #include <rpg/ren/texture.hpp>
-#include "ren/wgp/texture.hpp"
 #include "ren/wgp/Backend.hpp"
-#include "ren/wgp/constmeshbuffer.hpp"
 
 namespace rpg {
     struct State {
         glfw::Window& window;
         ren::wgp::Backend backend;
         ren::Scene scene;
-        ren::wgp::Texture texture;
-        ren::wgp::StackUniformBuffer::Uniforms<glm::mat4> worldUniforms;
-        wgpu::BindGroup worldBindGroup;
-        wgpu::BindGroup objectBindGroup;
         void (*onUpdate)(ren::Scene& scene, float deltaTime);
         float oldTime;
 
@@ -31,29 +25,21 @@ namespace rpg {
         ) : window([]() -> glfw::Window& {
                 glfw::Window::hint(glfw::ClientApi::NoApi);
                 return glfw::createWindow(1280, 720);
-            }()), backend(window, 1280, 720),
+            }()), backend(window, 1280, 720, {
+                .instanceBufferSize = 10 * ren::wgp::LitRenderer::InstanceSize,
+                .uniform = {
+                    .size = ren::wgp::LitRenderer::WorldBindingSize,
+                    .maxCount = 1
+                },
+                .textureData = {
+                    .width = TextureData.width,
+                    .height = TextureData.height,
+                    .count = TextureData.count,
+                    .data = TextureData.data
+                }
+            }),
             scene(std::forward<SceneT>(Scene)),
-            texture(ren::wgp::Texture(
-                backend.device,
-                TextureData.width,
-                TextureData.height,
-                TextureData.count,
-                TextureData.data,
-                wgpu::TextureFormat::RGBA8Unorm,
-                "Color Texture Array"
-            )), worldUniforms(backend.createUniforms<glm::mat4>(
-                glm::perspective(
-                    70.0f, 128.0f / 72.0f, 0.01f, 20.0f
-                ) * glm::lookAt(
-                    glm::vec3(5.0f),
-                    glm::vec3(0.0f),
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                )
-            )), worldBindGroup(backend.makeWorldBindGroup(
-                worldUniforms.offset, "World Bind Group"
-            )), objectBindGroup(backend.makeModelBindGroup(
-                texture.view, "Object Bind Group"
-            )), onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
+            onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
         {
             window.setUserPointer(this);
             window.setFramebufferSizeCallback<[](
@@ -70,38 +56,7 @@ namespace rpg {
 
             onUpdate(scene, deltaTime);
 
-            struct InstanceData {
-                glm::mat4 M;
-                uint32_t textureId;
-            };
-            std::vector<InstanceData> M(scene.entries.size());
-            for (size_t i = 0; i < scene.entries.size(); ++i) {
-                auto& e = scene.entries[i];
-                M[i].M = glm::translate(
-                    glm::mat4(1.0f),
-                    glm::vec3(e.position.x, e.position.y, e.position.z)
-                );
-                M[i].M *= glm::toMat4(glm::quat(glm::vec3(e.rotation.x, e.rotation.y, e.rotation.z)));
-                M[i].M = glm::scale(M[i].M, glm::vec3(e.scale.x, e.scale.y, e.scale.z));
-                M[i].textureId = e.materialId;
-            }
-            backend.queue.WriteBuffer(
-                backend.litRenderer.instanceBuffer, 0,
-                M.data(), M.size() * sizeof(InstanceData)
-            );
-
-            backend.draw([this](
-                ren::wgp::LitRenderer::Pass pass
-            ){
-                using namespace ren::wgp;
-                pass.setWorldBindGroup(worldBindGroup);
-                pass.setObjectBindGroup(objectBindGroup);
-                pass.draw(
-                    constmeshbuffer::CylinderPointer,
-                    0,
-                    static_cast<uint32_t>(scene.entries.size())
-                );
-            });
+            backend.draw(ren::wgp::Scene(scene));
         }
         static void run(State&& state) {
         #if defined(__EMSCRIPTEN__)
