@@ -1,6 +1,10 @@
 #include <rpg/runGame.hpp>
 #include <rpg/ren/texture.hpp>
 #include <rpg/math/radians.hpp>
+// #define EMBEDDED_TEXTURE
+#ifdef EMBEDDED_TEXTURE
+#include "embeddedTexture.hpp"
+#endif
 
 int main() {
 	using namespace rpg;
@@ -20,9 +24,16 @@ int main() {
 	};
 
 	texturearray::texture::DataSource textureSources[2] = {
-		texturearray::texture::datasource::RawData {
-			.data = textureData.data()
+		#ifdef EMBEDDED_TEXTURE
+		texturearray::texture::datasource::EncodedData {
+			.data = embeddedTexture.data(),
+			.size = embeddedTexture.size()
 		},
+		#else
+		texturearray::texture::datasource::SolidColor {
+			.color = { 255, 0, 255, 255 }
+		},
+		#endif
 		texturearray::texture::datasource::SolidColor {
 			.color = { 255, 255, 255, 255 }
 		}
@@ -31,8 +42,8 @@ int main() {
 		{
 			.maxObjects = 3,
 			.textureData = {
-				.width = 3,
-				.height = 3,
+				.width = 1024,
+				.height = 1024,
 				.sources = textureSources
 			}
 		},

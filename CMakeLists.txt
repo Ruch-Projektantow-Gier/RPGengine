@@ -8,6 +8,9 @@ add_subdirectory(third_party/dawn/ EXCLUDE_FROM_ALL)
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE third_party/glm)
 
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE third_party/stb)
+
 add_library(glfw_hpp INTERFACE)
 target_include_directories(glfw_hpp INTERFACE third_party/glfw.hpp/include)
 

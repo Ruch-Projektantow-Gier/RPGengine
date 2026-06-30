@@ -3,6 +3,7 @@ add_library(Engine
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Backend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/LitRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Resources.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/stb_image.c
 )
 
 # Add namespaced alias to Engine target
@@ -21,7 +22,7 @@ target_include_directories(Engine
 )
 
 # GLFW HPP
-target_link_libraries(Engine PRIVATE glfw_hpp)
+target_link_libraries(Engine PRIVATE glfw_hpp stb)
 
 # GLM
 target_link_libraries(Engine PUBLIC glm)

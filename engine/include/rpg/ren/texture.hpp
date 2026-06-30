@@ -8,8 +8,12 @@
 namespace rpg::ren {
     namespace texture {
         namespace datasource {
+            struct File {
+                const char* filename;
+            };
             struct EncodedData {
-                const void* data;
+                const uint8_t* data;
+                size_t size;
             };
             struct RawData {
                 uint32_t width;
@@ -27,11 +31,17 @@ namespace rpg::ren {
     namespace texturearray {
         namespace texture {
             namespace datasource {
-                struct EncodedData { const void* data; };
+                struct File { const char* filename; };
+                struct EncodedData { const uint8_t* data; size_t size; };
                 struct RawData { const void* data; };
                 struct SolidColor { ren::RGBA8 color; };
             };
-            using DataSource = std::variant<datasource::RawData, datasource::SolidColor>;
+            using DataSource = std::variant<
+                datasource::File,
+                datasource::EncodedData,
+                datasource::RawData,
+                datasource::SolidColor
+            >;
         }
         struct CreateInfo {
             uint32_t width;

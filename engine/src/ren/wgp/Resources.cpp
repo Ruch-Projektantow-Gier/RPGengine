@@ -1,4 +1,5 @@
 #include "Resources.hpp"
+#include <stb_image.h>
 #include "constmeshbuffer.hpp"
 
 namespace rpg::ren::wgp {
@@ -47,7 +48,38 @@ namespace rpg::ren::wgp {
             std::visit([this, &queue, &descriptor, i](auto&& arg){
                 using namespace texturearray::texture::datasource;
                 using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, RawData>) {
+                if constexpr (std::is_same_v<T, File>) {
+                    int width, height, channels;
+                    stbi_uc* data = stbi_load(
+                        arg.filename,
+                        &width,
+                        &height,
+                        &channels,
+                        STBI_rgb_alpha
+                    );
+                    assert(width >= 0);
+                    assert(height >= 0);
+                    assert(static_cast<uint32_t>(width) == descriptor.textureData.width);
+                    assert(static_cast<uint32_t>(height) == descriptor.textureData.height);
+                    textureArray.write(queue, data, static_cast<uint32_t>(i));
+                    stbi_image_free(data);
+                } else if constexpr (std::is_same_v<T, EncodedData>) {
+                    int width, height, channels;
+                    stbi_uc* data = stbi_load_from_memory(
+                        arg.data,
+                        static_cast<int>(arg.size),
+                        &width,
+                        &height,
+                        &channels,
+                        STBI_rgb_alpha
+                    );
+                    assert(width >= 0);
+                    assert(height >= 0);
+                    assert(static_cast<uint32_t>(width) == descriptor.textureData.width);
+                    assert(static_cast<uint32_t>(height) == descriptor.textureData.height);
+                    textureArray.write(queue, data, static_cast<uint32_t>(i));
+                    stbi_image_free(data);
+                } else if constexpr (std::is_same_v<T, RawData>) {
                     textureArray.write(queue, arg.data, static_cast<uint32_t>(i));
                 } else if constexpr (std::is_same_v<T, SolidColor>) {
                     std::vector<ren::RGBA8> data(
