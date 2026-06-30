@@ -19,24 +19,19 @@ namespace rpg {
 
         template <typename SceneT>
         State(
-            TextureDataView TextureData,
+            const ren::resources::CreateInfo& CreateInfo,
             SceneT&& Scene,
             void (*OnUpdate)(ren::Scene& scene, float deltaTime)
         ) : window([]() -> glfw::Window& {
                 glfw::Window::hint(glfw::ClientApi::NoApi);
                 return glfw::createWindow(1280, 720);
             }()), backend(window, 1280, 720, {
-                .instanceBufferSize = 10 * ren::wgp::LitRenderer::InstanceSize,
+                .instanceBufferSize = CreateInfo.maxObjects * ren::wgp::LitRenderer::InstanceSize,
                 .uniform = {
                     .size = ren::wgp::LitRenderer::WorldBindingSize,
                     .maxCount = 1
                 },
-                .textureData = {
-                    .width = TextureData.width,
-                    .height = TextureData.height,
-                    .count = TextureData.count,
-                    .data = TextureData.data
-                }
+                .textureData = CreateInfo.textureData
             }),
             scene(std::forward<SceneT>(Scene)),
             onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
@@ -45,7 +40,7 @@ namespace rpg {
             window.setFramebufferSizeCallback<[](
                 glfw::Window& window, int width, int height
             ){
-                window.getUserPointer<State>()->backend.onScreenResized(width, height);
+                window.getUser<State>().backend.onScreenResized(width, height);
             }>();
         }
 
@@ -73,21 +68,21 @@ namespace rpg {
     };
 
     void runGame(
-        TextureDataView TextureData,
+        const ren::resources::CreateInfo& CreateInfo,
         const ren::Scene& Scene,
         void(*onUpdate)(ren::Scene&, float)
     ) {
         State::run(State(
-            TextureData, Scene, onUpdate
+            CreateInfo, Scene, onUpdate
         ));
     }
     void runGame(
-        TextureDataView TextureData,
+        const ren::resources::CreateInfo& CreateInfo,
         ren::Scene&& Scene,
         void(*onUpdate)(ren::Scene&, float)
     ) {
         State::run(State(
-            TextureData, std::move(Scene), onUpdate
+            CreateInfo, std::move(Scene), onUpdate
         ));
     }
 }

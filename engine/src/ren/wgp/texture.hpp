@@ -67,7 +67,7 @@ namespace rpg::ren::wgp {
         struct FormatTraits;
 
         template <>
-        struct FormatTraits<ren::texture::RGBA8> {
+        struct FormatTraits<ren::RGBA8> {
             inline static constexpr wgpu::TextureFormat WGPUFormat = wgpu::TextureFormat::RGBA8Unorm;
         };
 
@@ -164,20 +164,26 @@ namespace rpg::ren::wgp {
             wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
             std::string_view label = std::string_view()
         ) : Texture(device, width, height, count, format, label) {
-            write(device.GetQueue(), width, height, count, format, data);
+            write(
+                device.GetQueue(),
+                width, height,
+                texture::bytesPerPixel(format),
+                data, 0, count
+            );
         }
 
         void write(
             const wgpu::Queue& queue,
-            uint32_t width, uint32_t height, uint32_t count,
-            wgpu::TextureFormat format,
-            const void* data
+            uint32_t width, uint32_t height,
+            uint32_t bytesPerPixel,
+            const void* data,
+            uint32_t offset = 0,
+            uint32_t count = 1
         ) const {
-            uint32_t bytesPerPixel = wgp::texture::bytesPerPixel(format);
             wgpu::TexelCopyTextureInfo destination {
                 .texture = texture,
                 .mipLevel = 0,
-                .origin = { 0, 0, 0 },
+                .origin = { 0, 0, offset },
                 .aspect = wgpu::TextureAspect::All,
             };
             wgpu::TexelCopyBufferLayout source {
@@ -195,14 +201,19 @@ namespace rpg::ren::wgp {
                 &size
             );
         }
-        void write(const wgpu::Queue& queue, const void* data) {
+        void write(
+            const wgpu::Queue& queue,
+            const void* data,
+            uint32_t offset = 0,
+            uint32_t count = 1
+        ) {
+            assert(offset + count <= texture.GetDepthOrArrayLayers());
             write(
                 queue,
                 texture.GetWidth(),
                 texture.GetHeight(),
-                texture.GetDepthOrArrayLayers(),
-                texture.GetFormat(),
-                data
+                texture::bytesPerPixel(texture.GetFormat()),
+                data, offset, count
             );
         }
     };

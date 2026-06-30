@@ -1,27 +1,42 @@
 #pragma once
 
-#include <cstdint>
-#include <array>
+#include <span>
+#include <variant>
 
-namespace rpg::ren::texture {
-    struct RGBA8 {
-        uint8_t r = 0;
-        uint8_t g = 0;
-        uint8_t b = 0;
-        uint8_t a = 255;
-    };
+#include "RGBA8.hpp"
 
-    template <typename T, size_t Width, size_t Height>
-    struct Data {
-        std::array<T, Width * Height> _data;
-
-        explicit constexpr Data(const T& color) : _data{} {
-            std::fill_n(_data.data(), Width * Height, color);
+namespace rpg::ren {
+    namespace texture {
+        namespace datasource {
+            struct EncodedData {
+                const void* data;
+            };
+            struct RawData {
+                uint32_t width;
+                uint32_t height;
+                const void* data;
+            };
+            struct SolidColor {
+                uint32_t width;
+                uint32_t height;
+                ren::RGBA8 color;
+            };
+        };
+        using DataSource = std::variant<datasource::RawData, datasource::SolidColor>;
+    }
+    namespace texturearray {
+        namespace texture {
+            namespace datasource {
+                struct EncodedData { const void* data; };
+                struct RawData { const void* data; };
+                struct SolidColor { ren::RGBA8 color; };
+            };
+            using DataSource = std::variant<datasource::RawData, datasource::SolidColor>;
         }
-
-        constexpr size_t width() const { return Width; }
-        constexpr size_t height() const { return Height; }
-        constexpr T* data() { return _data.data(); }
-        constexpr const T* data() const { return _data.data(); }
-    };
+        struct CreateInfo {
+            uint32_t width;
+            uint32_t height;
+            std::span<const texture::DataSource> sources;
+        };
+    }
 }

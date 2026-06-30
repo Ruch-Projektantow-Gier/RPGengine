@@ -34,8 +34,7 @@ namespace rpg::ren::wgp {
         device,
         descriptor.textureData.width,
         descriptor.textureData.height,
-        descriptor.textureData.count,
-        descriptor.textureData.data,
+        static_cast<uint32_t>(descriptor.textureData.sources.size()),
         wgpu::TextureFormat::RGBA8Unorm,
         "Color Texture Array"
     )), uniformBuffer(mem::bumpAllocatedUniformBuffer(device,
@@ -43,5 +42,25 @@ namespace rpg::ren::wgp {
             descriptor.uniform.size,
             getLimits(device).minUniformBufferOffsetAlignment
         ) * descriptor.uniform.maxCount
-    )) {}
+    )) {
+        for (size_t i = 0; i < descriptor.textureData.sources.size(); ++i) {
+            std::visit([this, &queue, &descriptor, i](auto&& arg){
+                using namespace texturearray::texture::datasource;
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, RawData>) {
+                    textureArray.write(queue, arg.data, static_cast<uint32_t>(i));
+                } else if constexpr (std::is_same_v<T, SolidColor>) {
+                    std::vector<ren::RGBA8> data(
+                        descriptor.textureData.width * descriptor.textureData.height,
+                        arg.color
+                    );
+                    textureArray.write(
+                        queue, data.data(),
+                        static_cast<uint32_t>(i)
+                    );
+                }
+
+            }, descriptor.textureData.sources[i]);
+        }
+    }
 }

@@ -7,20 +7,37 @@ int main() {
 	using namespace rpg::math;
 	using namespace rpg::ren;
 
-	static constexpr const std::array<texture::Data<texture::RGBA8, 16, 16>, 2> TextureData = {
-		texture::Data<texture::RGBA8, 16, 16>({255, 255, 255, 255}),
-		texture::Data<texture::RGBA8, 16, 16>({255, 0, 0, 255}),
+	std::array<RGBA8, 3 * 3> textureData = {
+		RGBA8 { 0, 0, 0, 255 }, 
+		RGBA8 { 127, 0, 0, 255 }, 
+		RGBA8 { 255, 0, 0, 255 }, 
+		RGBA8 { 0, 127, 0, 255 }, 
+		RGBA8 { 127, 127, 0, 255 }, 
+		RGBA8 { 255, 127, 0, 255 }, 
+		RGBA8 { 0, 255, 0, 255 }, 
+		RGBA8 { 127, 255, 0, 255 }, 
+		RGBA8 { 255, 255, 0, 255 }, 
 	};
 
+	texturearray::texture::DataSource textureSources[2] = {
+		texturearray::texture::datasource::RawData {
+			.data = textureData.data()
+		},
+		texturearray::texture::datasource::SolidColor {
+			.color = { 255, 255, 255, 255 }
+		}
+	};
 	rpg::runGame(
 		{
-			.width = 16,
-			.height = 16,
-			.count = 2,
-			.data = TextureData.data()
+			.maxObjects = 3,
+			.textureData = {
+				.width = 3,
+				.height = 3,
+				.sources = textureSources
+			}
 		},
 		{
-			.entries = {
+			.objects = {
 				{
 					.materialId = 0,
 					.meshId = 0,
@@ -52,8 +69,8 @@ int main() {
 			}
 		},
 		[](ren::Scene& scene, float deltaTime) {
-			scene.entries[0].rotation.y += deltaTime / 2.0f;
-			scene.entries[1].rotation.y -= deltaTime / 2.0f;
+			scene.objects[0].rotation.y += deltaTime / 2.0f;
+			scene.objects[1].rotation.y -= deltaTime / 2.0f;
 		}
 	);
 }

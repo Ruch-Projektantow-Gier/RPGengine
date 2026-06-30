@@ -28,7 +28,7 @@ namespace rpg::ren::wgp {
         } camera;
 
         Scene(const ren::Scene& scene) :
-            objects(scene.entries.size()),
+            objects(scene.objects.size()),
             calls(constmeshbuffer::MeshPointers.size()),
             camera({
                 .eye = glm::vec3(
@@ -46,7 +46,7 @@ namespace rpg::ren::wgp {
                 .zFar = scene.camera.far
             })
         {
-            for (const auto& e : scene.entries) calls[e.meshId].instanceCount += 1;
+            for (const auto& e : scene.objects) calls[e.meshId].instanceCount += 1;
             uint32_t offset = 0;
             std::vector<uint32_t> offsets(calls.size());
             for (size_t i = 0; i < calls.size(); ++i) {
@@ -55,8 +55,8 @@ namespace rpg::ren::wgp {
                 offsets[i] = offset;
                 offset += c.instanceCount;
             }
-            for (size_t i = 0; i < scene.entries.size(); ++i) {
-                const auto& e = scene.entries[i];
+            for (size_t i = 0; i < scene.objects.size(); ++i) {
+                const auto& e = scene.objects[i];
                 auto& o = objects[offsets[e.meshId]++];
                 o.M = glm::translate(
                     glm::mat4(1.0f),

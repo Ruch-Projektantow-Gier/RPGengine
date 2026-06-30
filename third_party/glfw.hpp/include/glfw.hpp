@@ -937,7 +937,10 @@ namespace glfw {
         void setUserPointer(void* pointer) { glfwSetWindowUserPointer(get(), pointer); }
         void* getUserPointer() { return glfwGetWindowUserPointer(get()); }
         template <typename T> T* getUserPointer() {
-            return reinterpret_cast<T*>(getUserPointer());
+            return static_cast<T*>(getUserPointer());
+        }
+        template <typename T> T& getUser() {
+            return *getUserPointer<T>();
         }
 
         GLFWkeyfun setKeyCallback(GLFWkeyfun callback) {
