@@ -19,30 +19,32 @@ namespace rpg::ren::wgp {
         };
         std::vector<Instance> objects;
         std::vector<DrawCall> calls;
-        glm::mat4 PV;
+        struct {
+            glm::vec3 eye;
+            glm::vec3 center;
+            float fovy;
+            float zNear;
+            float zFar;
+        } camera;
 
         Scene(const ren::Scene& scene) :
             objects(scene.entries.size()),
             calls(constmeshbuffer::MeshPointers.size()),
-            PV(glm::perspective(
-                    scene.camera.fov,
-                    128.0f / 72.0f,
-                    scene.camera.near,
-                    scene.camera.far
-                ) * glm::lookAt(
-                    glm::vec3(
-                        scene.camera.position.x,
-                        scene.camera.position.y,
-                        scene.camera.position.z
-                    ),
-                    glm::vec3(
-                        scene.camera.center.x,
-                        scene.camera.center.y,
-                        scene.camera.center.z
-                    ),
-                    glm::vec3(0.0f, 1.0f, 0.0f)
-                )
-            )
+            camera({
+                .eye = glm::vec3(
+                    scene.camera.position.x,
+                    scene.camera.position.y,
+                    scene.camera.position.z
+                ),
+                .center = glm::vec3(
+                    scene.camera.center.x,
+                    scene.camera.center.y,
+                    scene.camera.center.z
+                ),
+                .fovy = scene.camera.fov,
+                .zNear = scene.camera.near,
+                .zFar = scene.camera.far
+            })
         {
             for (const auto& e : scene.entries) calls[e.meshId].instanceCount += 1;
             uint32_t offset = 0;

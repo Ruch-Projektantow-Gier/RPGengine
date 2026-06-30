@@ -278,7 +278,19 @@ namespace rpg::ren::wgp {
 			scene.objects.data(),
 			scene.objects.size() * sizeof(Scene::Instance)
 		);
-		worldUniforms.write(queue, scene.PV);
+		worldUniforms.write(queue,
+			glm::perspective(
+				scene.camera.fovy,
+				aspect(),
+				scene.camera.zNear,
+				scene.camera.zFar
+			) * glm::lookAt(
+				scene.camera.eye,
+				scene.camera.center,
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			)
+		);
+
 		wgpu::SurfaceTexture surfaceTexture;
 		surface.GetCurrentTexture(&surfaceTexture);
 		wgpu::RenderPassColorAttachment colorAttachment{

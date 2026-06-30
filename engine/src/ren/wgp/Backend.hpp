@@ -109,6 +109,9 @@ namespace rpg::ren::wgp {
         }
 
         void onScreenResized(uint32_t width, uint32_t height);
+        uint32_t width() const { return depthTexture.GetWidth(); }
+        uint32_t height() const { return depthTexture.GetHeight(); }
+        float aspect() const { return static_cast<float>(width()) / height(); }
 
         struct RenderPass {
             wgpu::RenderPassEncoder pass;
