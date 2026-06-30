@@ -25,10 +25,8 @@ namespace rpg::ren::wgp {
             .magFilter = wgpu::FilterMode::Linear,
             .minFilter = wgpu::FilterMode::Linear,
             .mipmapFilter = wgpu::MipmapFilterMode::Linear,
-            .lodMinClamp = 0.0f,
-            .lodMaxClamp = 1.0f,
             .compare = wgpu::CompareFunction::Undefined,
-            .maxAnisotropy = 1,
+            .maxAnisotropy = 2,
         };
         return device.CreateSampler(&desc);
     }()), textureArray(ren::wgp::Texture(
@@ -49,6 +47,7 @@ namespace rpg::ren::wgp {
                 using namespace texturearray::texture::datasource;
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, File>) {
+                    assert(arg.filename != nullptr);
                     int width, height, channels;
                     stbi_uc* data = stbi_load(
                         arg.filename,
@@ -64,6 +63,8 @@ namespace rpg::ren::wgp {
                     textureArray.write(queue, data, static_cast<uint32_t>(i));
                     stbi_image_free(data);
                 } else if constexpr (std::is_same_v<T, EncodedData>) {
+                    assert(arg.data != nullptr);
+                    assert(arg.size > 0);
                     int width, height, channels;
                     stbi_uc* data = stbi_load_from_memory(
                         arg.data,
@@ -80,6 +81,7 @@ namespace rpg::ren::wgp {
                     textureArray.write(queue, data, static_cast<uint32_t>(i));
                     stbi_image_free(data);
                 } else if constexpr (std::is_same_v<T, RawData>) {
+                    assert(arg.data != nullptr);
                     textureArray.write(queue, arg.data, static_cast<uint32_t>(i));
                 } else if constexpr (std::is_same_v<T, SolidColor>) {
                     std::vector<ren::RGBA8> data(

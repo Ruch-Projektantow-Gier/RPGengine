@@ -1,7 +1,7 @@
 #include <rpg/runGame.hpp>
 #include <rpg/ren/texture.hpp>
 #include <rpg/math/radians.hpp>
-// #define EMBEDDED_TEXTURE
+#define EMBEDDED_TEXTURE
 #ifdef EMBEDDED_TEXTURE
 #include "embeddedTexture.hpp"
 #endif
@@ -64,7 +64,7 @@ int main() {
 					.scale = Vec3f(1.0f)
 				},
 				{
-					.materialId = 1,
+					.materialId = 0,
 					.meshId = 1,
 					.position = Vec3f(0.0f, 0.0f, 4.0f),
 					.rotation = Vec3f(0.0f),

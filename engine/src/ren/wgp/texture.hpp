@@ -1,4 +1,5 @@
 #pragma once
+#include <bit>
 #include <webgpu/webgpu_cpp.h>
 #include <rpg/ren/texture.hpp>
 
@@ -120,42 +121,28 @@ namespace rpg::ren::wgp {
             std::string_view label = std::string_view()
         ) : texture(wgp::texture::create(device, {
             .label = label,
-            .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
+            .usage =
+                wgpu::TextureUsage::TextureBinding |
+                wgpu::TextureUsage::StorageBinding |
+                wgpu::TextureUsage::CopyDst,
             .dimension = wgpu::TextureDimension::e2D,
             .size = { width, height, count },
             .format = format,
+            .mipLevelCount = static_cast<uint32_t>(
+                std::bit_width(std::max(width, height))
+            ),
         })), view(wgp::texture::view::create(texture, {
             .label = label,
             .format = format,
             .dimension = wgpu::TextureViewDimension::e2DArray,
             .baseMipLevel = 0,
-            .mipLevelCount = 1,
+            .mipLevelCount = static_cast<uint32_t>(
+                std::bit_width(std::max(width, height))
+            ),
             .baseArrayLayer = 0,
             .arrayLayerCount = count,
             .aspect = wgpu::TextureAspect::All,
         })) {}
-
-        Texture(
-            const wgpu::Device& device,
-            uint32_t width, uint32_t height,
-            wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm,
-            std::string_view label = std::string_view()
-        ) : texture(wgp::texture::create(device, {
-            .label = label,
-            .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst,
-            .dimension = wgpu::TextureDimension::e2D,
-            .size = { width, height, 1 },
-            .format = format,
-        })), view(wgp::texture::view::create(texture, {
-            .label = label,
-            .format = format,
-            .dimension = wgpu::TextureViewDimension::e2D,
-            .baseMipLevel = 0,
-            .mipLevelCount = 1,
-            .baseArrayLayer = 0,
-            .arrayLayerCount = 1,
-            .aspect = wgpu::TextureAspect::All,
-        })) { }
 
         Texture(
             const wgpu::Device& device,

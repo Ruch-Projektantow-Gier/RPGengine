@@ -67,6 +67,11 @@ namespace rpg::ren::wgp {
                 .maxVertexAttributes = 3,
                 .maxVertexBufferArrayStride = 8 * sizeof(float),
                 .maxInterStageShaderVariables = 3,
+				.maxComputeInvocationsPerWorkgroup = 8 * 8,
+				.maxComputeWorkgroupSizeX = 8,
+				.maxComputeWorkgroupSizeY = 8,
+				.maxComputeWorkgroupSizeZ = 1,
+				.maxComputeWorkgroupsPerDimension = 4096 / 8
             };
 
             wgpu::DeviceDescriptor desc { { .nextInChain = nullptr, .requiredLimits = &requiredLimits } };
@@ -211,6 +216,7 @@ namespace rpg::ren::wgp {
         depthTexture(makeDepthTexture(device, width, height)),
         depthTextureView(makeDepthTextureView(depthTexture)),
         multipleTexture(makeMultisampleTexture(device, colorFormat, width, height)),
+		mipMapCalculator(device),
 		litRenderer(device, colorFormat),
 		resources(device, queue, resourcesDescriptor),
 		worldUniforms(createUniforms<glm::mat4>()),
@@ -223,6 +229,11 @@ namespace rpg::ren::wgp {
 		auto size = window.getFramebufferSize();
 		assert(static_cast<uint32_t>(size.width) == width);
 		assert(static_cast<uint32_t>(size.height) == height);
+
+		mipMapCalculator.calculateMipMaps(
+			device, queue,
+			resources.textureArray.texture
+		);
 
         configureSurface(surface, device, colorFormat, width, height);
 

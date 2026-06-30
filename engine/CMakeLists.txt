@@ -3,6 +3,7 @@ add_library(Engine
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Backend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/LitRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/Resources.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ren/wgp/MipMapCalculator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/stb_image.c
 )
 

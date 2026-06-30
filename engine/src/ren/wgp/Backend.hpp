@@ -7,6 +7,7 @@
 #include "constmeshbuffer.hpp"
 #include "Resources.hpp"
 #include "Scene.hpp"
+#include "MipMapCalculator.hpp"
 
 namespace rpg::ren::wgp {
     inline constexpr wgpu::TextureFormat depthFormat = wgpu::TextureFormat::Depth24Plus;
@@ -68,6 +69,7 @@ namespace rpg::ren::wgp {
         wgpu::Texture depthTexture;
         wgpu::TextureView depthTextureView;
         wgpu::Texture multipleTexture;
+        MipMapCalculator mipMapCalculator;
         LitRenderer litRenderer;
         Resources resources;
         ren::wgp::buffer::Pointer<glm::mat4> worldUniforms;
