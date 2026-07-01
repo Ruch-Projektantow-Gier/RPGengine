@@ -222,18 +222,27 @@ namespace rpg::ren::wgp {
 		worldUniforms(createUniforms<glm::mat4>()),
 		worldBindGroup(makeWorldBindGroup(
 			worldUniforms.offset(), "World Bind Group"
-		)), objectBindGroup(makeModelBindGroup(
-			resources.textureArray.view, "Object Bind Group"
-		))
+		)), objectBindGroup(), materialBindingMap(resourcesDescriptor.materials.size())
 	{
 		auto size = window.getFramebufferSize();
 		assert(static_cast<uint32_t>(size.width) == width);
 		assert(static_cast<uint32_t>(size.height) == height);
 
-		mipMapCalculator.calculateMipMaps(
-			device, queue,
-			resources.textureArray.texture
-		);
+		for (const Texture& texture : resources.textureArrays) {
+			mipMapCalculator.calculateMipMaps(
+				device, queue, texture.texture
+			);
+			objectBindGroup.push_back(makeModelBindGroup(
+				texture.view, "Object Bind Group"
+			));
+		}
+		for (size_t i = 0; i < resourcesDescriptor.materials.size(); ++i) {
+			const auto& mat = resourcesDescriptor.materials[i];
+			const auto& textureMapping = resources.textureMapping[mat.textureId];
+			auto& materialMapping = materialBindingMap[i];
+			materialMapping.bindingId = textureMapping.textureArray;
+			materialMapping.materialId = textureMapping.layer;
+		}
 
         configureSurface(surface, device, colorFormat, width, height);
 
@@ -339,23 +348,34 @@ namespace rpg::ren::wgp {
 			resources.instanceBuffer
 		);
 		pass.SetBindGroup(LitRenderer::WorldBindGroupIndex, worldBindGroup);
-		pass.SetBindGroup(LitRenderer::ObjectBindGroupIndex, objectBindGroup);
-		for (size_t i = 0; i < constmeshbuffer::MeshPointers.size(); ++i) {
-			if (scene.calls[i].instanceCount == 0) continue;
-			constmeshbuffer::Pointer p = constmeshbuffer::MeshPointers[i];
-			pass.SetVertexBuffer(
-				LitRenderer::VertexBufferSlot,
-				resources.meshBuffer,
-				p.vertexOffset(),
-				p.vertexDataSize()
+		for (const auto& binding : scene.bindings) {
+			assert(binding.drawCallCount > 0);
+			pass.SetBindGroup(
+				LitRenderer::ObjectBindGroupIndex,
+				objectBindGroup[binding.bindingId]
 			);
-			pass.DrawIndexed(
-				p.indexCount,
-				scene.calls[i].instanceCount,
-				p.firstIndex(),
-				0,
-				scene.calls[i].firstInstance
-			);
+			for (
+				size_t callId = binding.firstDrawCall;
+				callId < binding.firstDrawCall + binding.drawCallCount;
+				++callId
+			) {
+				const auto& drawCall = scene.calls[callId];
+				assert(drawCall.instanceCount > 0);
+				constmeshbuffer::Pointer p = constmeshbuffer::MeshPointers[drawCall.meshId];
+				pass.SetVertexBuffer(
+					LitRenderer::VertexBufferSlot,
+					resources.meshBuffer,
+					p.vertexOffset(),
+					p.vertexDataSize()
+				);
+				pass.DrawIndexed(
+					p.indexCount,
+					drawCall.instanceCount,
+					p.firstIndex(),
+					0,
+					drawCall.firstInstance
+				);
+			}
 		}
 		pass.End();
 		wgpu::CommandBuffer commands = encoder.Finish();

@@ -80,10 +80,11 @@ namespace rpg::ren::wgp {
         const wgpu::Queue& queue,
         const wgpu::Texture& texture
     ) const {
+        uint32_t mipLevelCount = texture.GetMipLevelCount();
+        if (mipLevelCount == 1) return;
         uint32_t width = texture.GetWidth();
         uint32_t height = texture.GetHeight();
         uint32_t layers = texture.GetDepthOrArrayLayers();
-        uint32_t mipLevelCount = texture.GetMipLevelCount();
         std::vector<wgpu::TextureView> mipViews;
         mipViews.reserve(mipLevelCount);
         wgpu::TextureFormat format = texture.GetFormat();

@@ -21,12 +21,17 @@ namespace rpg::ren {
                 const void* data;
             };
             struct SolidColor {
-                uint32_t width;
-                uint32_t height;
+                uint32_t width = 1;
+                uint32_t height = 1;
                 ren::RGBA8 color;
             };
         };
-        using DataSource = std::variant<datasource::RawData, datasource::SolidColor>;
+        using DataSource = std::variant<
+            datasource::File,
+            datasource::EncodedData,
+            datasource::RawData,
+            datasource::SolidColor
+        >;
     }
     namespace texturearray {
         namespace texture {

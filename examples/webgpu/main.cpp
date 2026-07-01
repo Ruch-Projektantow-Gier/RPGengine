@@ -23,50 +23,103 @@ int main() {
 		RGBA8 { 255, 255, 0, 255 }, 
 	};
 
-	texturearray::texture::DataSource textureSources[2] = {
-		#ifdef EMBEDDED_TEXTURE
-		texturearray::texture::datasource::EncodedData {
+	texture::DataSource textureSources[] = {
+		texture::datasource::SolidColor {
+			.color = { 255, 255, 255, 255 }
+		},
+		texture::datasource::SolidColor {
+			.color = { 255, 0, 0, 255 }
+		},
+		texture::datasource::RawData {
+			.width = 3,
+			.height = 3,
+			.data = textureData.data()
+		},
+	#ifdef EMBEDDED_TEXTURE
+		texture::datasource::EncodedData {
 			.data = embeddedTexture.data(),
 			.size = embeddedTexture.size()
 		},
-		#else
-		texturearray::texture::datasource::SolidColor {
-			.color = { 255, 0, 255, 255 }
-		},
-		#endif
-		texturearray::texture::datasource::SolidColor {
-			.color = { 255, 255, 255, 255 }
+	#else
+		texture::datasource::File {
+			.filename = "texture.png"
 		}
+	#endif
+	};
+	Material materials[] = {
+		{ .textureId = 0 },
+		{ .textureId = 1 },
+		{ .textureId = 2 },
+		{ .textureId = 3 },
 	};
 	rpg::runGame(
 		{
-			.maxObjects = 3,
-			.textureData = {
-				.width = 1024,
-				.height = 1024,
-				.sources = textureSources
-			}
+			.maxObjects = 10,
+			.textureData = textureSources,
+			.materials = materials
 		},
 		{
 			.objects = {
 				{
 					.materialId = 0,
 					.meshId = 0,
-					.position = Vec3f(0.0f),
+					.position = Vec3f(-4.0f, 0.0f, -4.0f),
 					.rotation = Vec3f(0.0f),
 					.scale = Vec3f(1.0f)
 				},
 				{
 					.materialId = 1,
-					.meshId = 0,
+					.meshId = 1,
 					.position = Vec3f(0.0f, 0.0f, -4.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 2,
+					.meshId = 0,
+					.position = Vec3f(4.0f, 0.0f, -4.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 3,
+					.meshId = 1,
+					.position = Vec3f(-4.0f, 0.0f, 0.0f),
 					.rotation = Vec3f(0.0f),
 					.scale = Vec3f(1.0f)
 				},
 				{
 					.materialId = 0,
 					.meshId = 1,
+					.position = Vec3f(0.0f, 0.0f, 0.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 1,
+					.meshId = 0,
+					.position = Vec3f(4.0f, 0.0f, 0.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 2,
+					.meshId = 1,
+					.position = Vec3f(-4.0f, 0.0f, 4.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 3,
+					.meshId = 0,
 					.position = Vec3f(0.0f, 0.0f, 4.0f),
+					.rotation = Vec3f(0.0f),
+					.scale = Vec3f(1.0f)
+				},
+				{
+					.materialId = 0,
+					.meshId = 0,
+					.position = Vec3f(4.0f, 0.0f, 4.0f),
 					.rotation = Vec3f(0.0f),
 					.scale = Vec3f(1.0f)
 				}

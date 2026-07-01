@@ -31,7 +31,8 @@ namespace rpg {
                     .size = ren::wgp::LitRenderer::WorldBindingSize,
                     .maxCount = 1
                 },
-                .textureData = CreateInfo.textureData
+                .textureData = CreateInfo.textureData,
+                .materials = CreateInfo.materials
             }),
             scene(std::forward<SceneT>(Scene)),
             onUpdate(OnUpdate), oldTime(static_cast<float>(glfw::getTime()))
@@ -51,7 +52,7 @@ namespace rpg {
 
             onUpdate(scene, deltaTime);
 
-            backend.draw(ren::wgp::Scene(scene));
+            backend.draw(ren::wgp::Scene(scene, backend.materialBindingMap));
         }
         static void run(State&& state) {
         #if defined(__EMSCRIPTEN__)

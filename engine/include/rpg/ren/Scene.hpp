@@ -5,6 +5,15 @@
 #include <rpg/math/Vec3.hpp>
 
 namespace rpg::ren {
+    struct Shader { };
+    namespace shaders {
+        struct Lit : Shader {
+            struct Material {
+                uint32_t colorTextureId;
+            };
+            std::vector<Material> materials;
+        };
+    }
     struct Scene {
         struct Entry {
             uint32_t materialId;
@@ -13,6 +22,7 @@ namespace rpg::ren {
             math::Vec3f rotation;
             math::Vec3f scale;
         };
+        size_t materialsCount;
         std::vector<Entry> objects;
         struct {
             math::Vec3f position;

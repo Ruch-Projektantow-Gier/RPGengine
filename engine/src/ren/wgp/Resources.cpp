@@ -7,18 +7,14 @@ namespace rpg::ren::wgp {
         const wgpu::Device& device,
         const wgpu::Queue& queue,
         const Descriptor& descriptor
-    ) : meshBuffer(constmeshbuffer::create(
-        device, queue, "Const Mesh Buffer"
-    )), instanceBuffer([device, descriptor](){
-        wgpu::BufferDescriptor desc {
+    ) : Resources([&device, &queue, &descriptor](){
+        wgpu::BufferDescriptor instanceBufferDescriptor {
             .label = "Instance Buffer",
             .usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst,
             .size = descriptor.instanceBufferSize,
             .mappedAtCreation = false
         };
-        return device.CreateBuffer(&desc);
-    }()), sampler([device]() {
-        wgpu::SamplerDescriptor desc {
+        wgpu::SamplerDescriptor samplerDescriptor {
             .addressModeU = wgpu::AddressMode::Repeat,
             .addressModeV = wgpu::AddressMode::Repeat,
             .addressModeW = wgpu::AddressMode::Repeat,
@@ -28,73 +24,141 @@ namespace rpg::ren::wgp {
             .compare = wgpu::CompareFunction::Undefined,
             .maxAnisotropy = 2,
         };
-        return device.CreateSampler(&desc);
-    }()), textureArray(ren::wgp::Texture(
-        device,
-        descriptor.textureData.width,
-        descriptor.textureData.height,
-        static_cast<uint32_t>(descriptor.textureData.sources.size()),
-        wgpu::TextureFormat::RGBA8Unorm,
-        "Color Texture Array"
-    )), uniformBuffer(mem::bumpAllocatedUniformBuffer(device,
-        mem::ceilToNextMultiple(
-            descriptor.uniform.size,
-            getLimits(device).minUniformBufferOffsetAlignment
-        ) * descriptor.uniform.maxCount
-    )) {
-        for (size_t i = 0; i < descriptor.textureData.sources.size(); ++i) {
-            std::visit([this, &queue, &descriptor, i](auto&& arg){
-                using namespace texturearray::texture::datasource;
+        struct Data {
+            uint32_t width;
+            uint32_t height;
+            std::variant<stbi_uc*, const void*, RGBA8> data;
+        };
+        struct TextureArrayInfo {
+            uint32_t width;
+            uint32_t height;
+            std::vector<std::variant<stbi_uc*, const void*, RGBA8>> data;
+        };
+        std::vector<TextureArrayInfo> textureArrayInfos;
+        std::vector<TexturePointer> textureMapping;
+        textureMapping.reserve(descriptor.textureData.size());
+        // group texture sources by texture dimentions
+        for (size_t i = 0; i < descriptor.textureData.size(); ++i) {
+            Data d = std::visit([](auto&& arg){
+                using namespace ren::texture::datasource;
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, File>) {
                     assert(arg.filename != nullptr);
                     int width, height, channels;
                     stbi_uc* data = stbi_load(
                         arg.filename,
-                        &width,
-                        &height,
+                        &width, &height,
                         &channels,
                         STBI_rgb_alpha
                     );
-                    assert(width >= 0);
-                    assert(height >= 0);
-                    assert(static_cast<uint32_t>(width) == descriptor.textureData.width);
-                    assert(static_cast<uint32_t>(height) == descriptor.textureData.height);
-                    textureArray.write(queue, data, static_cast<uint32_t>(i));
-                    stbi_image_free(data);
+                    assert(width > 0);
+                    assert(height > 0);
+                    return Data {
+                        .width = static_cast<uint32_t>(width),
+                        .height = static_cast<uint32_t>(height),
+                        .data = data
+                    };
                 } else if constexpr (std::is_same_v<T, EncodedData>) {
                     assert(arg.data != nullptr);
-                    assert(arg.size > 0);
                     int width, height, channels;
                     stbi_uc* data = stbi_load_from_memory(
                         arg.data,
                         static_cast<int>(arg.size),
-                        &width,
-                        &height,
+                        &width, &height,
                         &channels,
                         STBI_rgb_alpha
                     );
-                    assert(width >= 0);
-                    assert(height >= 0);
-                    assert(static_cast<uint32_t>(width) == descriptor.textureData.width);
-                    assert(static_cast<uint32_t>(height) == descriptor.textureData.height);
-                    textureArray.write(queue, data, static_cast<uint32_t>(i));
-                    stbi_image_free(data);
+                    assert(width > 0);
+                    assert(height > 0);
+                    return Data {
+                        .width = static_cast<uint32_t>(width),
+                        .height = static_cast<uint32_t>(height),
+                        .data = data
+                    };
                 } else if constexpr (std::is_same_v<T, RawData>) {
-                    assert(arg.data != nullptr);
-                    textureArray.write(queue, arg.data, static_cast<uint32_t>(i));
+                    return Data {
+                        .width = arg.width,
+                        .height = arg.height,
+                        .data = arg.data
+                    };
                 } else if constexpr (std::is_same_v<T, SolidColor>) {
-                    std::vector<ren::RGBA8> data(
-                        descriptor.textureData.width * descriptor.textureData.height,
-                        arg.color
-                    );
-                    textureArray.write(
-                        queue, data.data(),
-                        static_cast<uint32_t>(i)
-                    );
+                    return Data {
+                        .width = arg.width,
+                        .height = arg.height,
+                        .data = arg.color
+                    };
                 }
-
-            }, descriptor.textureData.sources[i]);
+            }, descriptor.textureData[i]);
+            auto it = std::find_if(
+                textureArrayInfos.begin(),
+                textureArrayInfos.end(),
+                [&d](const TextureArrayInfo& a) {
+                    return ((a.width == d.width) && (a.height == d.height));
+                }
+            );
+            if (it != textureArrayInfos.end()) {
+                textureMapping.push_back({
+                    .textureArray = static_cast<uint32_t>(std::distance(
+                        textureArrayInfos.begin(), it
+                    )),
+                    .layer = static_cast<uint32_t>(it->data.size())
+                });
+                it->data.push_back(std::move(d.data));
+            } else {
+                textureMapping.push_back({
+                    .textureArray = static_cast<uint32_t>(textureArrayInfos.size()),
+                    .layer = 0
+                });
+                textureArrayInfos.push_back({
+                    .width = d.width,
+                    .height = d.height,
+                    .data = { std::move(d.data) }
+                });
+            }
         }
-    }
+        // create actual textures
+        std::vector<Texture> textures;
+        textures.reserve(textureArrayInfos.size());
+        for (auto& tai : textureArrayInfos) {
+            // create texture
+            textures.push_back(Texture(
+                device, tai.width, tai.height,
+                static_cast<uint32_t>(tai.data.size()),
+                wgpu::TextureFormat::RGBA8Unorm,
+                "Texture Array"
+            ));
+            // write texture
+            for (size_t layerId = 0; layerId < tai.data.size(); ++layerId) {
+                uint32_t offset = static_cast<uint32_t>(layerId);
+                std::visit([
+                    &textures, &queue, offset,
+                    size = tai.width * tai.height
+                ](auto&& arg){
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, stbi_uc*>) {
+                        textures.back().write(queue, arg, offset);
+                        stbi_image_free(arg);
+                    } else if constexpr (std::is_same_v<T, const void*>) {
+                        textures.back().write(queue, arg, offset);
+                    } else if constexpr (std::is_same_v<T, RGBA8>) {
+                        std::vector<RGBA8> data(size, arg);
+                        textures.back().write(queue, data.data(), offset);
+                    }
+                }, tai.data[layerId]);
+            }
+        }
+        return Resources(
+            constmeshbuffer::create(device, queue, "Const Mesh Buffer"),
+            device.CreateBuffer(&instanceBufferDescriptor),
+            device.CreateSampler(&samplerDescriptor),
+            std::move(textures),
+            std::move(textureMapping),
+            mem::bumpAllocatedUniformBuffer(device,
+                mem::ceilToNextMultiple(
+                    descriptor.uniform.size,
+                    getLimits(device).minUniformBufferOffsetAlignment
+                ) * descriptor.uniform.maxCount
+            )
+        );
+    }()) {}
 }

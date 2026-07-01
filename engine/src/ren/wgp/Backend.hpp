@@ -74,7 +74,8 @@ namespace rpg::ren::wgp {
         Resources resources;
         ren::wgp::buffer::Pointer<glm::mat4> worldUniforms;
         wgpu::BindGroup worldBindGroup;
-        wgpu::BindGroup objectBindGroup;
+        std::vector<wgpu::BindGroup> objectBindGroup;
+        std::vector<MaterialBinding> materialBindingMap;
 
         Backend(
             glfw::Window& window,
