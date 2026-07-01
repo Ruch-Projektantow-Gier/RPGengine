@@ -19,6 +19,14 @@ namespace rpg::ren::wgp {
             },
         }, "LitRenderer World Bind Group Layout"),
         .object = bindgroup::layout::create(device, {
+			{
+                .binding = 0,
+                .visibility = wgpu::ShaderStage::Fragment,
+				.buffer {
+					.type = wgpu::BufferBindingType::ReadOnlyStorage,
+					.minBindingSize = 0
+				}
+			},
             wgpu::BindGroupLayoutEntry {
                 .binding = 1,
                 .visibility = wgpu::ShaderStage::Fragment,
@@ -44,10 +52,14 @@ namespace rpg::ren::wgp {
 			struct WorldUniforms {
 				PV: mat4x4f,
 			};
-
 			@group(0) @binding(0) var<uniform> wu: WorldUniforms;
-			@group(1) @binding(1) var color: texture_2d_array<f32>;
-			@group(1) @binding(2) var texsampler: sampler;
+
+			struct Material {
+				colorTextureId: u32,
+			};
+			@group(1) @binding(0) var<storage, read> materials: array<Material>;
+			@group(1) @binding(1) var baseColorTexture: texture_2d_array<f32>;
+			@group(1) @binding(2) var baseColorSampler: sampler;
 
 			struct Vertex {
 				@location(0) position: vec3f,
@@ -59,14 +71,14 @@ namespace rpg::ren::wgp {
 				@location(5) M2: vec4f,
 				@location(6) M3: vec4f,
 
-				@location(7) tex1id: u32,
+				@location(7) materialId: u32,
 			};
 
 			struct Varyings {
 				@builtin(position) position: vec4f,
 				@location(0) normal: vec3f,
 				@location(1) texcoord: vec2f,
-				@interpolate(flat) @location(2) tex1id: u32,
+				@interpolate(flat) @location(2) materialId: u32,
 			};
 
 			@vertex fn vert(in: Vertex) -> Varyings {
@@ -75,13 +87,17 @@ namespace rpg::ren::wgp {
 				out.position = wu.PV * M * vec4f(in.position, 1.0);
 				out.normal = (M * vec4f(in.normal, 0.0)).xyz;
 				out.texcoord = in.texcoord;
-				out.tex1id = in.tex1id;
+				out.materialId = in.materialId;
 				return out;
 			}
 
 			@fragment fn frag(in: Varyings) -> @location(0) vec4f {
 			    let nl = max(dot(in.normal, normalize(vec3f(1, 1, 1))), 0.1);
-			   	let color: vec4f = textureSample(color, texsampler, in.texcoord, in.tex1id);
+				let material = materials[in.materialId];
+			   	let color: vec4f = textureSample(
+					baseColorTexture, baseColorSampler,
+					in.texcoord, material.colorTextureId
+				);
 			  	return vec4f(color.rgb * nl, color.a);
 			}
 		)");
@@ -206,14 +222,21 @@ namespace rpg::ren::wgp {
 		);
     }
     wgpu::BindGroup LitRenderer::createModelBindGroup(
-        const wgpu::TextureView textureView,
-        const wgpu::Sampler sampler,
+        const wgpu::Buffer& materialBuffer,
+        const wgpu::TextureView& textureView,
+        const wgpu::Sampler& sampler,
         std::string_view label
     ) const {
 		return bindgroup::create(
 			device,
 			bindGroupLayouts.object,
 			{
+				wgpu::BindGroupEntry {
+					.binding = 0,
+					.buffer = materialBuffer,
+					.offset = 0,
+					.size = wgpu::kWholeSize
+				},
 				wgpu::BindGroupEntry {
 					.binding = 1,
 					.textureView = textureView,

@@ -236,13 +236,23 @@ namespace rpg::ren::wgp {
 				texture.view, "Object Bind Group"
 			));
 		}
+		std::vector<LitRenderer::Material> materialData;
 		for (size_t i = 0; i < resourcesDescriptor.materials.size(); ++i) {
 			const auto& mat = resourcesDescriptor.materials[i];
 			const auto& textureMapping = resources.textureMapping[mat.textureId];
 			auto& materialMapping = materialBindingMap[i];
 			materialMapping.bindingId = textureMapping.textureArray;
 			materialMapping.materialId = textureMapping.layer;
+			materialData.push_back({
+				.textureId = textureMapping.layer
+			});
 		}
+		queue.WriteBuffer(
+			resources.materialBuffer,
+			0,
+			materialData.data(),
+			materialData.size() * sizeof(LitRenderer::Material)
+		);
 
         configureSurface(surface, device, colorFormat, width, height);
 
@@ -277,7 +287,10 @@ namespace rpg::ren::wgp {
 		std::string_view label
 	) const {
 		return litRenderer.createModelBindGroup(
-			textureView, resources.sampler, label
+			resources.materialBuffer,
+			textureView,
+			resources.sampler,
+			label
 		);
 	}
 

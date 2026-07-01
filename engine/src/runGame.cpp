@@ -27,6 +27,7 @@ namespace rpg {
                 return glfw::createWindow(1280, 720);
             }()), backend(window, 1280, 720, {
                 .instanceBufferSize = CreateInfo.maxObjects * ren::wgp::LitRenderer::InstanceSize,
+                .materialBufferSize = CreateInfo.materials.size() * sizeof(ren::wgp::LitRenderer::Material),
                 .uniform = {
                     .size = ren::wgp::LitRenderer::WorldBindingSize,
                     .maxCount = 1

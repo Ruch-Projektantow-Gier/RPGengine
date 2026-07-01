@@ -14,6 +14,12 @@ namespace rpg::ren::wgp {
             .size = descriptor.instanceBufferSize,
             .mappedAtCreation = false
         };
+        wgpu::BufferDescriptor materialBufferDescriptor {
+            .label = "Material Buffer",
+            .usage = wgpu::BufferUsage::Storage | wgpu::BufferUsage::CopyDst,
+            .size = descriptor.materialBufferSize,
+            .mappedAtCreation = false
+        };
         wgpu::SamplerDescriptor samplerDescriptor {
             .addressModeU = wgpu::AddressMode::Repeat,
             .addressModeV = wgpu::AddressMode::Repeat,
@@ -150,6 +156,7 @@ namespace rpg::ren::wgp {
         return Resources(
             constmeshbuffer::create(device, queue, "Const Mesh Buffer"),
             device.CreateBuffer(&instanceBufferDescriptor),
+            device.CreateBuffer(&materialBufferDescriptor),
             device.CreateSampler(&samplerDescriptor),
             std::move(textures),
             std::move(textureMapping),

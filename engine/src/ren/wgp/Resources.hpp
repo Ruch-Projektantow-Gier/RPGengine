@@ -11,6 +11,7 @@ namespace rpg::ren::wgp {
     struct Resources {
         struct Descriptor {
             size_t instanceBufferSize;
+            size_t materialBufferSize;
             struct {
                 size_t size;
                 size_t maxCount;
@@ -26,6 +27,7 @@ namespace rpg::ren::wgp {
 
         wgpu::Buffer meshBuffer;
         wgpu::Buffer instanceBuffer;
+        wgpu::Buffer materialBuffer;
         wgpu::Sampler sampler;
         std::vector<Texture> textureArrays;
         std::vector<TexturePointer> textureMapping;
@@ -34,12 +36,14 @@ namespace rpg::ren::wgp {
         Resources(
             wgpu::Buffer&& meshBuffer,
             wgpu::Buffer&& instanceBuffer,
+            wgpu::Buffer&& materialBuffer,
             wgpu::Sampler&& sampler,
             std::vector<Texture> textureArrays,
             std::vector<TexturePointer> textureMapping,
             mem::AlignedBumpAllocatedBuffer uniformBuffer
         ) : meshBuffer(std::move(meshBuffer)),
             instanceBuffer(std::move(instanceBuffer)),
+            materialBuffer(std::move(materialBuffer)),
             sampler(std::move(sampler)),
             textureArrays(std::move(textureArrays)),
             textureMapping(std::move(textureMapping)),

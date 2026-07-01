@@ -16,6 +16,10 @@ namespace rpg::ren::wgp {
         static constexpr uint32_t ObjectBindGroupIndex = 1;
         static constexpr uint32_t BindGroups = 2;
 
+        struct Material {
+            uint32_t textureId;
+        };
+
         wgpu::Device device;
         struct {
             wgpu::BindGroupLayout world;
@@ -32,8 +36,9 @@ namespace rpg::ren::wgp {
             std::string_view label = std::string_view()
         ) const;
         wgpu::BindGroup createModelBindGroup(
-            const wgpu::TextureView textureView,
-            const wgpu::Sampler sampler,
+            const wgpu::Buffer& materialBuffer,
+            const wgpu::TextureView& textureView,
+            const wgpu::Sampler& sampler,
             std::string_view label = std::string_view()
         ) const;
 
