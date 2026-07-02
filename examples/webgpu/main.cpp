@@ -133,8 +133,11 @@ int main() {
 			}
 		},
 		[](ren::Scene& scene, float deltaTime) {
-			scene.objects[0].rotation.y += deltaTime / 2.0f;
-			scene.objects[1].rotation.y -= deltaTime / 2.0f;
+			for (auto& o : scene.objects) {
+				o.rotation.x += deltaTime / 2.0f;
+				o.rotation.y += deltaTime / 2.0f;
+				o.rotation.z += deltaTime / 2.0f;
+			}
 		}
 	);
 }

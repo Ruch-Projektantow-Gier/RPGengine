@@ -219,7 +219,7 @@ namespace rpg::ren::wgp {
 		mipMapCalculator(device),
 		litRenderer(device, colorFormat),
 		resources(device, queue, resourcesDescriptor),
-		worldUniforms(createUniforms<glm::mat4>()),
+		worldUniforms(createUniforms<LitRenderer::Uniforms>()),
 		worldBindGroup(makeWorldBindGroup(
 			worldUniforms.offset(), "World Bind Group"
 		)), objectBindGroup(), materialBindingMap(resourcesDescriptor.materials.size())
@@ -311,8 +311,8 @@ namespace rpg::ren::wgp {
 			scene.objects.data(),
 			scene.objects.size() * sizeof(Scene::Instance)
 		);
-		worldUniforms.write(queue,
-			glm::perspective(
+		worldUniforms.write(queue, {
+			.PV = glm::perspective(
 				scene.camera.fovy,
 				aspect(),
 				scene.camera.zNear,
@@ -321,8 +321,9 @@ namespace rpg::ren::wgp {
 				scene.camera.eye,
 				scene.camera.center,
 				glm::vec3(0.0f, 1.0f, 0.0f)
-			)
-		);
+			),
+			.camera = scene.camera.eye
+		});
 
 		wgpu::SurfaceTexture surfaceTexture;
 		surface.GetCurrentTexture(&surfaceTexture);

@@ -12,10 +12,10 @@ namespace rpg::ren::wgp {
     ) : device(Device), bindGroupLayouts{
         .world = bindgroup::layout::create(device, wgpu::BindGroupLayoutEntry {
             .binding = 0,
-            .visibility = wgpu::ShaderStage::Vertex,
+            .visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment,
             .buffer {
                 .type = wgpu::BufferBindingType::Uniform,
-                .minBindingSize = WorldBindingSize
+                .minBindingSize = sizeof(Uniforms)
             },
         }, "LitRenderer World Bind Group Layout"),
         .object = bindgroup::layout::create(device, {
@@ -51,6 +51,7 @@ namespace rpg::ren::wgp {
         wgpu::ShaderModule shaderModule = shadermodule::create(device, R"(
 			struct WorldUniforms {
 				PV: mat4x4f,
+				camera: vec3f,
 			};
 			@group(0) @binding(0) var<uniform> wu: WorldUniforms;
 
@@ -75,16 +76,19 @@ namespace rpg::ren::wgp {
 			};
 
 			struct Varyings {
-				@builtin(position) position: vec4f,
-				@location(0) normal: vec3f,
-				@location(1) texcoord: vec2f,
-				@interpolate(flat) @location(2) materialId: u32,
+				@builtin(position) screenPosition: vec4f,
+				@location(0) position: vec3f,
+				@location(1) normal: vec3f,
+				@location(2) texcoord: vec2f,
+				@interpolate(flat) @location(3) materialId: u32,
 			};
 
 			@vertex fn vert(in: Vertex) -> Varyings {
 				var out: Varyings;
                 let M = mat4x4f(in.M0, in.M1, in.M2, in.M3);
-				out.position = wu.PV * M * vec4f(in.position, 1.0);
+				let p = M * vec4f(in.position, 1.0);
+				out.screenPosition = wu.PV * p;
+				out.position = p.xyz;
 				out.normal = (M * vec4f(in.normal, 0.0)).xyz;
 				out.texcoord = in.texcoord;
 				out.materialId = in.materialId;
@@ -92,13 +96,19 @@ namespace rpg::ren::wgp {
 			}
 
 			@fragment fn frag(in: Varyings) -> @location(0) vec4f {
-			    let nl = max(dot(in.normal, normalize(vec3f(1, 1, 1))), 0.1);
+			    let lightColor = vec3f(1, 1, 1);
+			    let V = normalize(wu.camera - in.position);
+				let L = normalize(vec3f(1, 1, 1));
+				let H = normalize(V + L);
+				let NdotL = max(dot(in.normal, L), 0.0);
+				let NdotH = max(dot(in.normal, H), 0.0);
 				let material = materials[in.materialId];
-			   	let color: vec4f = textureSample(
+			   	let baseColor: vec4f = textureSample(
 					baseColorTexture, baseColorSampler,
 					in.texcoord, material.colorTextureId
 				);
-			  	return vec4f(color.rgb * nl, color.a);
+				let lo = (NdotL + pow(NdotH, 32)) * baseColor.rgb * lightColor;
+			  	return vec4f(lo, baseColor.a);
 			}
 		)");
 
@@ -216,7 +226,7 @@ namespace rpg::ren::wgp {
 				.binding = 0,
 				.buffer = uniformBuffer,
 				.offset = uniformBufferOffset,
-				.size = WorldBindingSize,
+				.size = sizeof(Uniforms),
 			},
 			label
 		);

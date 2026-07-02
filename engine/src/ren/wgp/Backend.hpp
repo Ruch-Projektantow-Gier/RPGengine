@@ -72,7 +72,7 @@ namespace rpg::ren::wgp {
         MipMapCalculator mipMapCalculator;
         LitRenderer litRenderer;
         Resources resources;
-        ren::wgp::buffer::Pointer<glm::mat4> worldUniforms;
+        ren::wgp::buffer::Pointer<LitRenderer::Uniforms> worldUniforms;
         wgpu::BindGroup worldBindGroup;
         std::vector<wgpu::BindGroup> objectBindGroup;
         std::vector<MaterialBinding> materialBindingMap;

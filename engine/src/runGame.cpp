@@ -29,7 +29,7 @@ namespace rpg {
                 .instanceBufferSize = CreateInfo.maxObjects * ren::wgp::LitRenderer::InstanceSize,
                 .materialBufferSize = CreateInfo.materials.size() * sizeof(ren::wgp::LitRenderer::Material),
                 .uniform = {
-                    .size = ren::wgp::LitRenderer::WorldBindingSize,
+                    .size = sizeof(ren::wgp::LitRenderer::Uniforms),
                     .maxCount = 1
                 },
                 .textureData = CreateInfo.textureData,
